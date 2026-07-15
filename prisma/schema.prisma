@@ -26,6 +26,7 @@ model Submission {
   template      Template  @relation(fields: [templateId], references: [id], onDelete: Cascade)
   candidateName String?
   status        String    @default("pending")
+  openedAt      DateTime?
   createdAt     DateTime  @default(now())
   submittedAt   DateTime?
   answers       Answer[]

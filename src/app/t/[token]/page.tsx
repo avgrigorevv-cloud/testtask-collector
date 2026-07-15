@@ -11,11 +11,19 @@ export default async function CandidatePage({
   params: Promise<{ token: string }>;
 }) {
   const { token } = await params;
-  const submission = await prisma.submission.findUnique({
+  let submission = await prisma.submission.findUnique({
     where: { token },
     include: { template: true, answers: true },
   });
   if (!submission) notFound();
+
+  if (submission.status === "pending") {
+    submission = await prisma.submission.update({
+      where: { id: submission.id },
+      data: { status: "opened", openedAt: new Date() },
+      include: { template: true, answers: true },
+    });
+  }
 
   const blocks = JSON.parse(submission.template.blocks) as Block[];
   const answers = Object.fromEntries(
