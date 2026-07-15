@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useId, useRef, useState } from "react";
 
 type UploadedFile = { url: string; name: string };
 
@@ -13,6 +13,7 @@ export function AdminFileUpload({
   label?: string;
   onUploaded: (files: UploadedFile[]) => void;
 }) {
+  const inputId = useId();
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
 
@@ -33,15 +34,24 @@ export function AdminFileUpload({
   }
 
   return (
-    <div>
+    <div className="flex items-center gap-2">
+      <label
+        htmlFor={inputId}
+        className="cursor-pointer rounded-md bg-slate-100 hover:bg-slate-200 px-3 py-1.5 text-xs font-medium text-slate-700"
+      >
+        Выбрать файлы
+      </label>
       <input
         ref={inputRef}
+        id={inputId}
         type="file"
         multiple={multiple}
         onChange={handleChange}
-        className="text-xs text-slate-600 file:mr-3 file:rounded-md file:border-0 file:bg-slate-100 file:px-3 file:py-1.5 file:text-xs file:font-medium hover:file:bg-slate-200"
+        className="sr-only"
       />
-      {uploading && <p className="text-xs text-slate-400 mt-1">{label ?? "Загрузка..."}</p>}
+      {uploading && (
+        <span className="text-xs text-slate-400">{label ?? "Загрузка..."}</span>
+      )}
     </div>
   );
 }

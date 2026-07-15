@@ -43,12 +43,12 @@ const devInternBlocks: Block[] = [
 
 const researcherBlocks: Block[] = [
   block({
-    type: "text",
+    type: "info",
     title: "Контекст задания",
     description:
       "Перед вами три скриншота главной страницы страховой компании СОГАЗ (десктоп и мобильная версия). Проведите экспресс-исследование: отметьте на скриншотах конкретные проблемы юзабилити и кликните на месте, где вы их видите — оставьте комментарий к каждой отметке",
     required: false,
-    config: { multiline: true, placeholder: "" },
+    config: {},
   }),
   block({
     type: "image_annotate",
@@ -75,12 +75,12 @@ const researcherBlocks: Block[] = [
 
 const designerBlocks: Block[] = [
   block({
-    type: "text",
+    type: "info",
     title: "Задание",
     description:
       "Пришлите портфолио и, при желании, ссылки на профили (Behance/Dribbble). Дополнительно можно оставить пару замечаний по дизайну главной страницы sogaz.ru — как будто это ваш реальный клиентский проект",
     required: false,
-    config: { multiline: true, placeholder: "" },
+    config: {},
   }),
   block({
     type: "file_upload",

@@ -1,13 +1,14 @@
 "use client";
 
 import { useRef, useState } from "react";
-import type {
-  Block,
-  FileUploadAnswerValue,
-  ImageAnnotateAnswerValue,
-  LinkAnswerValue,
-  Pin,
-  TextAnswerValue,
+import {
+  isDisplayOnlyBlock,
+  type Block,
+  type FileUploadAnswerValue,
+  type ImageAnnotateAnswerValue,
+  type LinkAnswerValue,
+  type Pin,
+  type TextAnswerValue,
 } from "@/lib/blocks";
 import { ImageAnnotate } from "@/components/shared/ImageAnnotate";
 
@@ -160,7 +161,7 @@ export function CandidateFlow({
             >
               <p className="font-medium text-slate-900">
                 {block.title || "Без названия"}
-                {block.required && block.type !== "attachment" && (
+                {block.required && !isDisplayOnlyBlock(block.type) && (
                   <span className="text-red-500"> *</span>
                 )}
               </p>
@@ -218,12 +219,19 @@ export function CandidateFlow({
 
               {block.type === "file_upload" && (
                 <div className="mt-2 space-y-2">
+                  <label
+                    htmlFor={`file-${block.id}`}
+                    className="inline-block cursor-pointer rounded-md bg-slate-100 hover:bg-slate-200 px-3 py-1.5 text-sm font-medium text-slate-700"
+                  >
+                    Выбрать файлы
+                  </label>
                   <input
+                    id={`file-${block.id}`}
                     type="file"
                     multiple={(block.config.maxFiles ?? 5) > 1}
                     accept={block.config.accept}
                     onChange={(e) => handleFileUpload(block, e.target.files)}
-                    className="text-sm"
+                    className="sr-only"
                   />
                   <ul className="space-y-1">
                     {(

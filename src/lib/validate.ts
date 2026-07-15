@@ -13,6 +13,7 @@ export function isAnswerValueFilled(type: Block["type"], value: unknown): boolea
     case "image_annotate":
       return Array.isArray(v.pins) && v.pins.length > 0;
     case "attachment":
+    case "info":
       return true;
     default:
       return false;

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import type { Block } from "@/lib/blocks";
+import { isDisplayOnlyBlock, type Block } from "@/lib/blocks";
 import { isAnswerValueFilled } from "@/lib/validate";
 
 type Params = { params: Promise<{ token: string }> };
@@ -25,7 +25,7 @@ export async function POST(_request: Request, { params }: Params) {
   );
 
   const missing = blocks
-    .filter((b) => b.required && b.type !== "attachment")
+    .filter((b) => b.required && !isDisplayOnlyBlock(b.type))
     .filter((b) => !isAnswerValueFilled(b.type, answersByBlockId[b.id]))
     .map((b) => b.id);
 

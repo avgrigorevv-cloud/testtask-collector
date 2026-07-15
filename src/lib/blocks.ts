@@ -1,5 +1,6 @@
 export type BlockType =
   | "attachment"
+  | "info"
   | "link"
   | "text"
   | "file_upload"
@@ -18,6 +19,11 @@ export type AttachmentBlock = BlockBase & {
   config: {
     files: { url: string; name: string }[];
   };
+};
+
+export type InfoBlock = BlockBase & {
+  type: "info";
+  config: Record<string, never>;
 };
 
 export type LinkBlock = BlockBase & {
@@ -52,6 +58,7 @@ export type ImageAnnotateBlock = BlockBase & {
 
 export type Block =
   | AttachmentBlock
+  | InfoBlock
   | LinkBlock
   | TextBlock
   | FileUploadBlock
@@ -59,11 +66,14 @@ export type Block =
 
 export const BLOCK_TYPE_LABELS: Record<BlockType, string> = {
   attachment: "Прикреплённый файл (инструкция)",
+  info: "Информационный блок (без ответа)",
   link: "Ссылка",
   text: "Текстовый ответ",
   file_upload: "Загрузка файла",
   image_annotate: "Разметка скриншотов",
 };
+
+export const DISPLAY_BLOCK_TYPES: BlockType[] = ["attachment", "info"];
 
 export const INPUT_BLOCK_TYPES: BlockType[] = [
   "link",
@@ -72,10 +82,18 @@ export const INPUT_BLOCK_TYPES: BlockType[] = [
   "image_annotate",
 ];
 
+const NON_ANSWERABLE_TYPES: BlockType[] = ["attachment", "info"];
+
+export function isDisplayOnlyBlock(type: BlockType): boolean {
+  return NON_ANSWERABLE_TYPES.includes(type);
+}
+
 export function defaultConfigFor(type: BlockType): Block["config"] {
   switch (type) {
     case "attachment":
       return { files: [] };
+    case "info":
+      return {};
     case "link":
       return { placeholder: "https://github.com/..." };
     case "text":
@@ -92,7 +110,7 @@ export function newBlock(type: BlockType): Block {
     id: crypto.randomUUID(),
     title: "",
     description: "",
-    required: type !== "attachment",
+    required: !isDisplayOnlyBlock(type),
   };
   return { ...base, type, config: defaultConfigFor(type) } as Block;
 }

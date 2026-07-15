@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import type { Block } from "@/lib/blocks";
@@ -18,39 +17,15 @@ export default async function EditTemplatePage({
   const blocks = JSON.parse(template.blocks) as Block[];
 
   return (
-    <div className="space-y-6">
-      <div>
-        <Link href="/admin" className="text-sm text-slate-500 hover:text-slate-900">
-          ← Шаблоны
-        </Link>
-      </div>
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold text-slate-900">Редактирование шаблона</h1>
-        <div className="flex items-center gap-2">
-          <Link
-            href={`/admin/templates/${id}/preview`}
-            target="_blank"
-            className="rounded-lg bg-slate-100 text-slate-700 px-4 py-2 text-sm font-medium hover:bg-slate-200"
-          >
-            Предпросмотр
-          </Link>
-          <Link
-            href={`/admin/templates/${id}/submissions`}
-            className="rounded-lg bg-slate-900 text-white px-4 py-2 text-sm font-medium hover:bg-slate-800"
-          >
-            Прохождения →
-          </Link>
-        </div>
-      </div>
-      <TemplateBuilder
-        initial={{
-          id: template.id,
-          name: template.name,
-          roleLabel: template.roleLabel,
-          description: template.description ?? "",
-          blocks,
-        }}
-      />
-    </div>
+    <TemplateBuilder
+      title="Редактирование шаблона"
+      initial={{
+        id: template.id,
+        name: template.name,
+        roleLabel: template.roleLabel,
+        description: template.description ?? "",
+        blocks,
+      }}
+    />
   );
 }

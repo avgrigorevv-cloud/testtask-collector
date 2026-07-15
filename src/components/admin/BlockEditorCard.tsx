@@ -1,6 +1,6 @@
 "use client";
 
-import { BLOCK_TYPE_LABELS, type Block } from "@/lib/blocks";
+import { BLOCK_TYPE_LABELS, isDisplayOnlyBlock, type Block } from "@/lib/blocks";
 import { AdminFileUpload } from "@/components/admin/AdminFileUpload";
 
 export function BlockEditorCard({
@@ -64,7 +64,7 @@ export function BlockEditorCard({
         className="w-full text-sm rounded-md border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-slate-900"
       />
 
-      {block.type !== "attachment" && (
+      {!isDisplayOnlyBlock(block.type) && (
         <label className="flex items-center gap-2 text-sm text-slate-600">
           <input
             type="checkbox"
