@@ -1,0 +1,46 @@
+name: Diagnose server
+
+on:
+  workflow_dispatch:
+
+jobs:
+  diagnose:
+    runs-on: self-hosted
+    steps:
+      - name: Ports and listeners
+        run: |
+          echo "--- ss -tlnp ---"
+          ss -tlnp 2>&1 || true
+
+      - name: nginx presence
+        run: |
+          echo "--- which nginx ---"
+          which nginx 2>&1 || echo "nginx not on PATH"
+          echo "--- nginx -v ---"
+          nginx -v 2>&1 || true
+          echo "--- systemctl status nginx ---"
+          systemctl status nginx --no-pager 2>&1 || true
+          echo "--- nginx sites-enabled ---"
+          ls -la /etc/nginx/sites-enabled/ 2>&1 || true
+          echo "--- nginx sites-enabled contents ---"
+          for f in /etc/nginx/sites-enabled/*; do echo "== $f =="; cat "$f" 2>&1; done 2>&1 || true
+          echo "--- nginx conf.d ---"
+          ls -la /etc/nginx/conf.d/ 2>&1 || true
+          for f in /etc/nginx/conf.d/*; do echo "== $f =="; cat "$f" 2>&1; done 2>&1 || true
+
+      - name: docker state
+        run: |
+          echo "--- docker ps ---"
+          docker ps -a 2>&1 || true
+
+      - name: local app reachability
+        run: |
+          echo "--- curl localhost:3000/admin ---"
+          curl -isS http://localhost:3000/admin 2>&1 || true
+
+      - name: firewall
+        run: |
+          echo "--- ufw status ---"
+          ufw status verbose 2>&1 || true
+          echo "--- iptables -L -n ---"
+          iptables -L -n 2>&1 || true
