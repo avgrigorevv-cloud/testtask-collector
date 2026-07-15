@@ -1,36 +1,58 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Конструктор тестовых заданий
 
-## Getting Started
+Сервис для сбора откликов на тестовые задания с кастомизируемым флоу под каждую роль
+(стажёры-разработчики, исследователи, дизайнеры и т.д.).
 
-First, run the development server:
+## Как это устроено
+
+- **Шаблон** — админ собирает флоу из блоков в конструкторе (`/admin`).
+- **Блоки**: прикреплённый файл-инструкция, ссылка, текстовый ответ, загрузка файла,
+  разметка скриншотов (кандидат кликает по картинке и оставляет комментарий к точке).
+- **Прохождение** — для каждого кандидата админ создаёт персональную ссылку `/t/<token>`,
+  по которой кандидат проходит флоу без регистрации.
+- Admin-часть закрыта простой авторизацией по паролю (см. `ADMIN_PASSWORD` ниже) — без
+  многопользовательской системы, этого достаточно для MVP.
+
+В сиде (`prisma/seed.ts`) уже есть три примера шаблона: бэкенд-стажёр (с приложенным PDF
+тестового задания и полем под ссылку на git-репозиторий), UX-исследователь (три скриншота
+главной sogaz.ru для разметки проблем юзабилити) и дизайнер (загрузка портфолио + ссылка).
+
+## Стек
+
+Next.js 16 (App Router) · TypeScript · Tailwind CSS · Prisma 7 + SQLite (better-sqlite3 driver
+adapter) · локальное хранилище файлов в `public/uploads`.
+
+## Запуск
 
 ```bash
+npm install
+cp .env.example .env      # при желании поменяйте ADMIN_PASSWORD
+npx prisma migrate dev    # создаёт SQLite-базу prisma/dev.db
+npx prisma db seed        # заполняет тремя примерами шаблонов
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Открыть [http://localhost:3000/admin](http://localhost:3000/admin) и войти паролем из
+`ADMIN_PASSWORD` (по умолчанию `changeme123`).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Ссылки на кандидатские прохождения печатаются в консоль после сида, либо их можно получить
+в админке: шаблон → «Прохождения» → «Копировать ссылку».
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Переменные окружения
 
-## Learn More
+| Переменная | Назначение |
+| --- | --- |
+| `DATABASE_URL` | путь к SQLite-файлу, например `file:./dev.db` |
+| `ADMIN_PASSWORD` | пароль для входа в `/admin` |
+| `ADMIN_SECRET` | соль для подписи сессионной cookie админа |
+| `NEXT_PUBLIC_BASE_URL` | базовый URL для кнопки «Копировать ссылку» в админке |
 
-To learn more about Next.js, take a look at the following resources:
+## Структура
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- `src/app/admin` — админка (конструктор шаблонов, список прохождений, просмотр ответа).
+- `src/app/t/[token]` — публичный флоу кандидата.
+- `src/app/api/admin/*` — защищённые ручки для админки.
+- `src/app/api/public/*` — публичные ручки для кандидата (ответы, файлы, отправка).
+- `src/lib/blocks.ts` — типы блоков и их конфигурации.
+- `src/components/shared/ImageAnnotate.tsx` — общий компонент разметки скриншотов
+  (используется и в кандидатском флоу, и в просмотре ответа админом).
