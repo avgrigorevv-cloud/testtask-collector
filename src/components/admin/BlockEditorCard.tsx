@@ -26,27 +26,39 @@ export function BlockEditorCard({
         <span className="text-xs font-medium uppercase tracking-wide text-slate-400">
           {BLOCK_TYPE_LABELS[block.type]}
         </span>
-        <div className="flex items-center gap-1">
-          <button
-            onClick={onMoveUp}
-            disabled={isFirst}
-            className="text-slate-400 hover:text-slate-900 disabled:opacity-30 text-sm px-1"
-          >
-            ↑
-          </button>
-          <button
-            onClick={onMoveDown}
-            disabled={isLast}
-            className="text-slate-400 hover:text-slate-900 disabled:opacity-30 text-sm px-1"
-          >
-            ↓
-          </button>
-          <button
-            onClick={onRemove}
-            className="text-slate-400 hover:text-red-600 text-sm px-1"
-          >
-            удалить
-          </button>
+        <div className="flex items-center gap-3">
+          {!isDisplayOnlyBlock(block.type) && (
+            <label className="flex items-center gap-1.5 text-xs text-slate-600 whitespace-nowrap">
+              <input
+                type="checkbox"
+                checked={block.required}
+                onChange={(e) => onChange({ ...block, required: e.target.checked })}
+              />
+              Обязательный
+            </label>
+          )}
+          <div className="flex items-center gap-1">
+            <button
+              onClick={onMoveUp}
+              disabled={isFirst}
+              className="text-slate-400 hover:text-slate-900 disabled:opacity-30 text-sm px-1"
+            >
+              ↑
+            </button>
+            <button
+              onClick={onMoveDown}
+              disabled={isLast}
+              className="text-slate-400 hover:text-slate-900 disabled:opacity-30 text-sm px-1"
+            >
+              ↓
+            </button>
+            <button
+              onClick={onRemove}
+              className="text-slate-400 hover:text-red-600 text-sm px-1"
+            >
+              удалить
+            </button>
+          </div>
         </div>
       </div>
 
@@ -63,17 +75,6 @@ export function BlockEditorCard({
         rows={2}
         className="w-full text-sm rounded-md border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-slate-900"
       />
-
-      {!isDisplayOnlyBlock(block.type) && (
-        <label className="flex items-center gap-2 text-sm text-slate-600">
-          <input
-            type="checkbox"
-            checked={block.required}
-            onChange={(e) => onChange({ ...block, required: e.target.checked })}
-          />
-          Обязательный блок
-        </label>
-      )}
 
       {block.type === "attachment" && (
         <div className="space-y-2">

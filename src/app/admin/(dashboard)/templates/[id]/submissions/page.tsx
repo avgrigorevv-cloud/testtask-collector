@@ -49,18 +49,33 @@ export default async function TemplateSubmissionsPage({
             className="flex items-center justify-between rounded-xl border border-slate-200 bg-white p-4"
           >
             <div>
-              <Link
-                href={`/admin/submissions/${s.id}`}
-                className="font-medium text-slate-900 hover:underline"
-              >
-                {s.candidateName || "Без имени"}
-              </Link>
+              <div className="flex items-center gap-2">
+                <p className="font-medium text-slate-900">
+                  {s.candidateName || "Без имени"}
+                </p>
+                <span
+                  className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+                    s.status === "submitted"
+                      ? "bg-green-100 text-green-700"
+                      : "bg-amber-100 text-amber-700"
+                  }`}
+                >
+                  {STATUS_LABELS[s.status] ?? s.status}
+                </span>
+              </div>
               <p className="text-xs text-slate-400 mt-0.5">
-                {STATUS_LABELS[s.status] ?? s.status} · создано{" "}
-                {new Date(s.createdAt).toLocaleDateString("ru-RU")}
+                создано {new Date(s.createdAt).toLocaleDateString("ru-RU")}
               </p>
             </div>
-            <CopyLinkButton path={`/t/${s.token}`} />
+            <div className="flex items-center gap-2">
+              <Link
+                href={`/admin/submissions/${s.id}`}
+                className="rounded-md bg-slate-900 text-white px-3 py-1.5 text-xs font-medium hover:bg-slate-800"
+              >
+                Смотреть ответ
+              </Link>
+              <CopyLinkButton path={`/t/${s.token}`} />
+            </div>
           </div>
         ))}
       </div>

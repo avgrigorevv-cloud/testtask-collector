@@ -47,6 +47,41 @@ npm run dev
 | `ADMIN_SECRET` | соль для подписи сессионной cookie админа |
 | `NEXT_PUBLIC_BASE_URL` | базовый URL для кнопки «Копировать ссылку» в админке |
 
+## Деплой
+
+Важно: приложение хранит данные в локальном SQLite-файле (`prisma/dev.db`) и в локальной
+файловой системе (`public/uploads`). Это значит, что хостинг должен давать **постоянный
+диск**, который не сбрасывается между деплоями/перезапусками — обычный serverless-хостинг
+(Vercel, Netlify Functions и т.п.) для этого не подходит: файлы и база будут теряться.
+Подходят Railway, Render, Fly.io, VPS с Docker/PM2 — любой хостинг с постоянным контейнером
+и volume.
+
+В репозитории есть `Dockerfile`. Сборка образа не проверялась локально (в этом окружении
+не было доступного Docker), проверьте `docker build` перед продакшн-использованием.
+
+```bash
+docker build -t testtask-collector .
+docker run -d \
+  -p 3000:3000 \
+  -e ADMIN_PASSWORD=... \
+  -e ADMIN_SECRET=... \
+  -e NEXT_PUBLIC_BASE_URL=https://your-domain.example \
+  -e DATABASE_URL=file:./dev.db \
+  -v testtask-db:/app/prisma \
+  -v testtask-uploads:/app/public/uploads \
+  testtask-collector
+```
+
+Volume на `/app/prisma` сохраняет `dev.db` между перезапусками контейнера, volume на
+`/app/public/uploads` — загруженные админом и кандидатами файлы. При первом запуске
+контейнер сам применяет миграции (`prisma migrate deploy`) — сид (`prisma db seed`) нужно
+прогнать один раз вручную (`docker exec <container> npx prisma db seed`), если нужны
+примеры шаблонов.
+
+Если в будущем понадобится serverless-хостинг (Vercel и т.п.), архитектуру нужно будет
+поменять: SQLite → Postgres (например, через `@prisma/adapter-pg`), а `public/uploads` →
+объектное хранилище (S3-совместимое).
+
 ## Структура
 
 - `src/app/admin` — админка (конструктор шаблонов, список прохождений, просмотр ответа).

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -37,22 +37,30 @@ export function TemplateBuilder({
   const [error, setError] = useState<string | null>(null);
   const [dirty, setDirty] = useState(false);
   const savedIdRef = useRef<string | undefined>(initial.id);
-  const skipDirtyCheck = useRef(true);
 
-  useEffect(() => {
-    if (skipDirtyCheck.current) {
-      skipDirtyCheck.current = false;
-      return;
-    }
+  function updateName(value: string) {
+    setName(value);
     setDirty(true);
-  }, [name, roleLabel, description, blocks]);
+  }
+
+  function updateRoleLabel(value: string) {
+    setRoleLabel(value);
+    setDirty(true);
+  }
+
+  function updateDescription(value: string) {
+    setDescription(value);
+    setDirty(true);
+  }
 
   function updateBlock(index: number, block: Block) {
     setBlocks((prev) => prev.map((b, i) => (i === index ? block : b)));
+    setDirty(true);
   }
 
   function removeBlock(index: number) {
     setBlocks((prev) => prev.filter((_, i) => i !== index));
+    setDirty(true);
   }
 
   function moveBlock(index: number, direction: -1 | 1) {
@@ -63,10 +71,12 @@ export function TemplateBuilder({
       [next[index], next[target]] = [next[target], next[index]];
       return next;
     });
+    setDirty(true);
   }
 
   function addBlock(type: BlockType) {
     setBlocks((prev) => [...prev, newBlock(type)]);
+    setDirty(true);
   }
 
   async function saveTemplate(): Promise<boolean> {
@@ -108,22 +118,24 @@ export function TemplateBuilder({
     }
   }
 
+  // Cancel means "stay on this page" (standard dialog semantics) — the user can
+  // simply click the same link again once ready. OK saves and navigates in one go,
+  // so there is never a need to click the destination link a second time.
   function guardNav(e: React.MouseEvent, href: string, newTab?: boolean) {
     if (!dirty) return;
     e.preventDefault();
 
     const wantsSave = confirm(
-      "В шаблоне есть несохранённые изменения. Сохранить перед переходом?"
+      "В шаблоне есть несохранённые изменения. Сохранить и перейти?"
     );
-
-    if (!wantsSave) {
-      if (newTab) window.open(href, "_blank");
-      else router.push(href);
-      return;
-    }
+    if (!wantsSave) return;
 
     const pendingWin = newTab ? window.open("", "_blank") : null;
-    saveTemplate().then(() => {
+    saveTemplate().then((ok) => {
+      if (!ok) {
+        pendingWin?.close();
+        return;
+      }
       if (newTab) {
         if (pendingWin) pendingWin.location.href = href;
       } else {
@@ -177,19 +189,19 @@ export function TemplateBuilder({
       <div className="rounded-xl border border-slate-200 bg-white p-5 space-y-3">
         <input
           value={name}
-          onChange={(e) => setName(e.target.value)}
+          onChange={(e) => updateName(e.target.value)}
           placeholder="Название шаблона, например «Backend-стажёр»"
           className="w-full text-lg font-medium rounded-md border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-slate-900"
         />
         <input
           value={roleLabel}
-          onChange={(e) => setRoleLabel(e.target.value)}
+          onChange={(e) => updateRoleLabel(e.target.value)}
           placeholder="Роль, например «Стажёр-разработчик»"
           className="w-full text-sm rounded-md border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-slate-900"
         />
         <textarea
           value={description}
-          onChange={(e) => setDescription(e.target.value)}
+          onChange={(e) => updateDescription(e.target.value)}
           placeholder="Короткое описание задания для кандидата"
           rows={2}
           className="w-full text-sm rounded-md border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-slate-900"

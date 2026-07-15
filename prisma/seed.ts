@@ -107,6 +107,92 @@ const designerBlocks: Block[] = [
   }),
 ];
 
+const devInternDemoAnswers = [
+  {
+    blockId: devInternBlocks[1].id,
+    type: "link",
+    value: { url: "https://github.com/demo-candidate/umux-pipeline" },
+  },
+  {
+    blockId: devInternBlocks[2].id,
+    type: "text",
+    value: {
+      text: "Не успел добавить HTTP-эндпоинт на FastAPI — сделал только консольный запуск. С запасом времени вынес бы правила очистки данных в отдельный YAML вместо хардкода в коде.",
+    },
+  },
+];
+
+const researcherDemoAnswers = [
+  {
+    blockId: researcherBlocks[1].id,
+    type: "image_annotate",
+    value: {
+      pins: [
+        {
+          imageIndex: 0,
+          x: 28,
+          y: 90,
+          comment:
+            "Cookie-баннер перекрывает часть контента, а кнопка «Принять» слабо контрастирует с фоном",
+        },
+        {
+          imageIndex: 1,
+          x: 18,
+          y: 62,
+          comment:
+            "У карточек «Квартира», «ОСАГО» и других не подгружаются иконки — вместо них битые placeholder'ы",
+        },
+        {
+          imageIndex: 2,
+          x: 88,
+          y: 55,
+          comment:
+            "На мобильной версии карточки категорий обрезаются по правому краю — есть горизонтальный скролл",
+        },
+      ],
+    },
+  },
+  {
+    blockId: researcherBlocks[2].id,
+    type: "text",
+    value: {
+      text: "1) Убрать перекрытие контента cookie-баннером — сейчас он блокирует часть интерфейса.\n2) Починить подгрузку иконок категорий, сейчас везде показываются битые placeholder'ы.\n3) Проверить адаптивную вёрстку на мобильных — карточки обрезаются и появляется горизонтальный скролл.",
+    },
+  },
+];
+
+const designerDemoAnswers = [
+  {
+    blockId: designerBlocks[1].id,
+    type: "file_upload",
+    value: {
+      files: [
+        { url: "/uploads/seed/TASK_umux_intern.pdf", name: "portfolio-example.pdf" },
+      ],
+    },
+  },
+  {
+    blockId: designerBlocks[2].id,
+    type: "link",
+    value: { url: "https://behance.net/demo-designer" },
+  },
+  {
+    blockId: designerBlocks[3].id,
+    type: "image_annotate",
+    value: {
+      pins: [
+        {
+          imageIndex: 0,
+          x: 30,
+          y: 20,
+          comment:
+            "Хиро-баннер визуально сильный, но заголовок конкурирует по вниманию с рекламным слайдером рядом — стоит развести зоны",
+        },
+      ],
+    },
+  },
+];
+
 async function main() {
   const templates = [
     {
@@ -115,6 +201,7 @@ async function main() {
       description:
         "Собрать бэкенд-пайплайн для очистки и агрегации ответов опросника UMUX-Lite",
       blocks: devInternBlocks,
+      demoAnswers: devInternDemoAnswers,
     },
     {
       name: "UX-исследователь: экспресс-аудит sogaz.ru",
@@ -122,12 +209,14 @@ async function main() {
       description:
         "Провести экспресс-исследование главной страницы sogaz.ru по скриншотам и найти проблемы юзабилити",
       blocks: researcherBlocks,
+      demoAnswers: researcherDemoAnswers,
     },
     {
       name: "Дизайнер: портфолио + мини-ревью",
       roleLabel: "Дизайнер",
       description: "Прислать портфолио и, по желанию, прокомментировать дизайн главной sogaz.ru",
       blocks: designerBlocks,
+      demoAnswers: designerDemoAnswers,
     },
   ];
 
@@ -146,8 +235,23 @@ async function main() {
       },
     });
     const submission = await prisma.submission.create({
-      data: { templateId: created.id, candidateName: "Демо-кандидат" },
+      data: {
+        templateId: created.id,
+        candidateName: "Демо-кандидат",
+        status: "submitted",
+        submittedAt: new Date(),
+      },
     });
+    for (const a of t.demoAnswers) {
+      await prisma.answer.create({
+        data: {
+          submissionId: submission.id,
+          blockId: a.blockId,
+          type: a.type,
+          value: JSON.stringify(a.value),
+        },
+      });
+    }
     console.log(`created: ${t.name}`);
     console.log(`  candidate link: /t/${submission.token}`);
   }
