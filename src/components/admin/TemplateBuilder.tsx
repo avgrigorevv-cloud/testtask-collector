@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { ArrowRight, Eye } from "lucide-react";
 import {
   BLOCK_TYPE_LABELS,
   DISPLAY_BLOCK_TYPES,
@@ -12,12 +13,14 @@ import {
   type BlockType,
 } from "@/lib/blocks";
 import { BlockEditorCard } from "@/components/admin/BlockEditorCard";
+import { BackLink } from "@/components/admin/BackLink";
 
 export type TemplateBuilderInitial = {
   id?: string;
   name: string;
   roleLabel: string;
   description: string;
+  estimatedDuration: string;
   blocks: Block[];
 };
 
@@ -32,6 +35,7 @@ export function TemplateBuilder({
   const [name, setName] = useState(initial.name);
   const [roleLabel, setRoleLabel] = useState(initial.roleLabel);
   const [description, setDescription] = useState(initial.description);
+  const [estimatedDuration, setEstimatedDuration] = useState(initial.estimatedDuration);
   const [blocks, setBlocks] = useState<Block[]>(initial.blocks);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -50,6 +54,11 @@ export function TemplateBuilder({
 
   function updateDescription(value: string) {
     setDescription(value);
+    setDirty(true);
+  }
+
+  function updateEstimatedDuration(value: string) {
+    setEstimatedDuration(value);
     setDirty(true);
   }
 
@@ -87,7 +96,7 @@ export function TemplateBuilder({
     setSaving(true);
     setError(null);
 
-    const payload = { name, roleLabel, description, blocks };
+    const payload = { name, roleLabel, description, estimatedDuration, blocks };
     const res = await fetch(
       savedIdRef.current
         ? `/api/admin/templates/${savedIdRef.current}`
@@ -153,15 +162,9 @@ export function TemplateBuilder({
 
   return (
     <div className="space-y-6">
-      <div>
-        <Link
-          href={templatesHref}
-          onClick={(e) => guardNav(e, templatesHref)}
-          className="text-sm text-slate-500 hover:text-slate-900"
-        >
-          ← Шаблоны
-        </Link>
-      </div>
+      <BackLink href={templatesHref} onClick={(e) => guardNav(e, templatesHref)}>
+        Шаблоны
+      </BackLink>
 
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold text-slate-900">{title}</h1>
@@ -171,16 +174,18 @@ export function TemplateBuilder({
               href={previewHref}
               target="_blank"
               onClick={(e) => guardNav(e, previewHref, true)}
-              className="rounded-lg bg-slate-100 text-slate-700 px-4 py-2 text-sm font-medium hover:bg-slate-200"
+              className="inline-flex items-center gap-1.5 rounded-lg bg-slate-100 text-slate-700 px-4 py-2 text-sm font-medium hover:bg-slate-200"
             >
+              <Eye className="w-4 h-4" />
               Предпросмотр
             </Link>
             <Link
               href={submissionsHref}
               onClick={(e) => guardNav(e, submissionsHref)}
-              className="rounded-lg bg-slate-900 text-white px-4 py-2 text-sm font-medium hover:bg-slate-800"
+              className="inline-flex items-center gap-1.5 rounded-lg bg-slate-900 text-white px-4 py-2 text-sm font-medium hover:bg-slate-800"
             >
-              Прохождения →
+              Прохождения
+              <ArrowRight className="w-4 h-4" />
             </Link>
           </div>
         )}
@@ -193,12 +198,20 @@ export function TemplateBuilder({
           placeholder="Название шаблона, например «Backend-стажёр»"
           className="w-full text-lg font-medium rounded-md border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-slate-900"
         />
-        <input
-          value={roleLabel}
-          onChange={(e) => updateRoleLabel(e.target.value)}
-          placeholder="Роль, например «Стажёр-разработчик»"
-          className="w-full text-sm rounded-md border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-slate-900"
-        />
+        <div className="flex gap-3">
+          <input
+            value={roleLabel}
+            onChange={(e) => updateRoleLabel(e.target.value)}
+            placeholder="Роль, например «Стажёр-разработчик»"
+            className="flex-1 text-sm rounded-md border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-slate-900"
+          />
+          <input
+            value={estimatedDuration}
+            onChange={(e) => updateEstimatedDuration(e.target.value)}
+            placeholder="Срок выполнения, например «2–3 дня»"
+            className="w-56 text-sm rounded-md border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-slate-900"
+          />
+        </div>
         <textarea
           value={description}
           onChange={(e) => updateDescription(e.target.value)}

@@ -23,10 +23,11 @@ export async function GET() {
 
 export async function POST(request: Request) {
   const body = await request.json();
-  const { name, roleLabel, description, blocks } = body as {
+  const { name, roleLabel, description, estimatedDuration, blocks } = body as {
     name: string;
     roleLabel: string;
     description?: string;
+    estimatedDuration?: string;
     blocks: Block[];
   };
 
@@ -39,6 +40,7 @@ export async function POST(request: Request) {
       name,
       roleLabel,
       description: description ?? "",
+      estimatedDuration: estimatedDuration ?? "",
       blocks: JSON.stringify(blocks ?? []),
     },
   });

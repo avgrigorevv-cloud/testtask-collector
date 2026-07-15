@@ -8,14 +8,15 @@ datasource db {
 }
 
 model Template {
-  id          String       @id @default(cuid())
-  name        String
-  roleLabel   String
-  description String?
-  blocks      String
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
-  submissions Submission[]
+  id                String       @id @default(cuid())
+  name              String
+  roleLabel         String
+  description       String?
+  estimatedDuration String?
+  blocks            String
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+  submissions       Submission[]
 }
 
 model Submission {

@@ -28,6 +28,7 @@ export async function GET(_request: Request, { params }: Params) {
       name: submission.template.name,
       roleLabel: submission.template.roleLabel,
       description: submission.template.description,
+      estimatedDuration: submission.template.estimatedDuration,
     },
     blocks,
     answers: answersByBlockId,

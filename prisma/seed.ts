@@ -200,6 +200,7 @@ async function main() {
       roleLabel: "Стажёр-разработчик",
       description:
         "Собрать бэкенд-пайплайн для очистки и агрегации ответов опросника UMUX-Lite",
+      estimatedDuration: "3–5 дней",
       blocks: devInternBlocks,
       demoAnswers: devInternDemoAnswers,
     },
@@ -208,6 +209,7 @@ async function main() {
       roleLabel: "Исследователь (middle/senior)",
       description:
         "Провести экспресс-исследование главной страницы sogaz.ru по скриншотам и найти проблемы юзабилити",
+      estimatedDuration: "40–60 минут",
       blocks: researcherBlocks,
       demoAnswers: researcherDemoAnswers,
     },
@@ -215,6 +217,7 @@ async function main() {
       name: "Дизайнер: портфолио + мини-ревью",
       roleLabel: "Дизайнер",
       description: "Прислать портфолио и, по желанию, прокомментировать дизайн главной sogaz.ru",
+      estimatedDuration: "2–3 дня",
       blocks: designerBlocks,
       demoAnswers: designerDemoAnswers,
     },
@@ -231,6 +234,7 @@ async function main() {
         name: t.name,
         roleLabel: t.roleLabel,
         description: t.description,
+        estimatedDuration: t.estimatedDuration,
         blocks: JSON.stringify(t.blocks),
       },
     });

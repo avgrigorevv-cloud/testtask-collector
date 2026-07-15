@@ -15,6 +15,7 @@ export async function GET(_request: Request, { params }: Params) {
     name: template.name,
     roleLabel: template.roleLabel,
     description: template.description,
+    estimatedDuration: template.estimatedDuration,
     blocks: JSON.parse(template.blocks) as Block[],
   });
 }
@@ -22,10 +23,11 @@ export async function GET(_request: Request, { params }: Params) {
 export async function PUT(request: Request, { params }: Params) {
   const { id } = await params;
   const body = await request.json();
-  const { name, roleLabel, description, blocks } = body as {
+  const { name, roleLabel, description, estimatedDuration, blocks } = body as {
     name: string;
     roleLabel: string;
     description?: string;
+    estimatedDuration?: string;
     blocks: Block[];
   };
 
@@ -35,6 +37,7 @@ export async function PUT(request: Request, { params }: Params) {
       name,
       roleLabel,
       description: description ?? "",
+      estimatedDuration: estimatedDuration ?? "",
       blocks: JSON.stringify(blocks ?? []),
     },
   });

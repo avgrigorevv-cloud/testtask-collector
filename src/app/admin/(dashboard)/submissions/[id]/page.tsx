@@ -1,8 +1,8 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import type { Block, ImageAnnotateAnswerValue } from "@/lib/blocks";
 import { ImageAnnotate } from "@/components/shared/ImageAnnotate";
+import { BackLink } from "@/components/admin/BackLink";
 
 export const dynamic = "force-dynamic";
 
@@ -26,13 +26,10 @@ export default async function SubmissionDetailPage({
   return (
     <div className="space-y-6">
       <div>
-        <Link
-          href={`/admin/templates/${submission.templateId}/submissions`}
-          className="text-sm text-slate-500 hover:text-slate-900"
-        >
-          ← {submission.template.name}
-        </Link>
-        <div className="flex items-center justify-between mt-1">
+        <BackLink href={`/admin/templates/${submission.templateId}/submissions`}>
+          {submission.template.name}
+        </BackLink>
+        <div className="flex items-center justify-between mt-3">
           <h1 className="text-2xl font-semibold text-slate-900">
             {submission.candidateName || "Без имени"}
           </h1>
@@ -43,7 +40,7 @@ export default async function SubmissionDetailPage({
                 : "bg-amber-100 text-amber-700"
             }`}
           >
-            {submission.status === "submitted" ? "Ответ получен" : "В процессе"}
+            {submission.status === "submitted" ? "Ответ получен" : "В работе"}
           </span>
         </div>
         {submission.submittedAt && (

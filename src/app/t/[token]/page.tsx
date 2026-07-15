@@ -28,6 +28,7 @@ export default async function CandidatePage({
       templateName={submission.template.name}
       roleLabel={submission.template.roleLabel}
       description={submission.template.description ?? ""}
+      estimatedDuration={submission.template.estimatedDuration ?? ""}
       blocks={blocks}
       initialAnswers={answers}
       initialStatus={submission.status}

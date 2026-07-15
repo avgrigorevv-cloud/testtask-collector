@@ -4,7 +4,7 @@ export default function NewTemplatePage() {
   return (
     <TemplateBuilder
       title="Новый шаблон"
-      initial={{ name: "", roleLabel: "", description: "", blocks: [] }}
+      initial={{ name: "", roleLabel: "", description: "", estimatedDuration: "", blocks: [] }}
     />
   );
 }

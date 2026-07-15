@@ -1,8 +1,8 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import type { Block } from "@/lib/blocks";
 import { CandidateFlow } from "@/components/candidate/CandidateFlow";
+import { BackLink } from "@/components/admin/BackLink";
 
 export const dynamic = "force-dynamic";
 
@@ -20,15 +20,14 @@ export default async function TemplatePreviewPage({
   return (
     <div>
       <div className="max-w-2xl mx-auto px-4 pt-6">
-        <Link href={`/admin/templates/${id}`} className="text-sm text-slate-500 hover:text-slate-900">
-          ← {template.name}
-        </Link>
+        <BackLink href={`/admin/templates/${id}`}>{template.name}</BackLink>
       </div>
       <CandidateFlow
         token=""
         templateName={template.name}
         roleLabel={template.roleLabel}
         description={template.description ?? ""}
+        estimatedDuration={template.estimatedDuration ?? ""}
         blocks={blocks}
         initialAnswers={{}}
         initialStatus="pending"

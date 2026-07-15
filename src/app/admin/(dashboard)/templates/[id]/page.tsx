@@ -24,6 +24,7 @@ export default async function EditTemplatePage({
         name: template.name,
         roleLabel: template.roleLabel,
         description: template.description ?? "",
+        estimatedDuration: template.estimatedDuration ?? "",
         blocks,
       }}
     />

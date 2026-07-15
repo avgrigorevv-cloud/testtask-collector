@@ -3,11 +3,13 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { CreateSubmissionButton } from "@/components/admin/CreateSubmissionButton";
 import { CopyLinkButton } from "@/components/admin/CopyLinkButton";
+import { DeleteSubmissionButton } from "@/components/admin/DeleteSubmissionButton";
+import { BackLink } from "@/components/admin/BackLink";
 
 export const dynamic = "force-dynamic";
 
 const STATUS_LABELS: Record<string, string> = {
-  pending: "Не завершено",
+  pending: "В работе",
   submitted: "Ответ получен",
 };
 
@@ -28,10 +30,8 @@ export default async function TemplateSubmissionsPage({
   return (
     <div className="space-y-6">
       <div>
-        <Link href={`/admin/templates/${id}`} className="text-sm text-slate-500 hover:text-slate-900">
-          ← {template.name}
-        </Link>
-        <h1 className="text-2xl font-semibold text-slate-900 mt-1">Прохождения</h1>
+        <BackLink href={`/admin/templates/${id}`}>{template.name}</BackLink>
+        <h1 className="text-2xl font-semibold text-slate-900 mt-3">Прохождения</h1>
       </div>
 
       <div className="rounded-xl border border-slate-200 bg-white p-4">
@@ -75,6 +75,7 @@ export default async function TemplateSubmissionsPage({
                 Смотреть ответ
               </Link>
               <CopyLinkButton path={`/t/${s.token}`} />
+              <DeleteSubmissionButton submissionId={s.id} candidateName={s.candidateName || "Без имени"} />
             </div>
           </div>
         ))}

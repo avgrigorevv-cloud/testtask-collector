@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { Clock } from "lucide-react";
 import {
   isDisplayOnlyBlock,
   type Block,
@@ -19,6 +20,7 @@ export function CandidateFlow({
   templateName,
   roleLabel,
   description,
+  estimatedDuration,
   blocks,
   initialAnswers,
   initialStatus,
@@ -28,6 +30,7 @@ export function CandidateFlow({
   templateName: string;
   roleLabel: string;
   description: string;
+  estimatedDuration?: string;
   blocks: Block[];
   initialAnswers: AnswersState;
   initialStatus: string;
@@ -145,7 +148,15 @@ export function CandidateFlow({
       )}
       <div className="max-w-2xl mx-auto px-4 py-10 space-y-8">
         <div>
-          <p className="text-xs uppercase tracking-wide text-slate-400">{roleLabel}</p>
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-xs uppercase tracking-wide text-slate-400">{roleLabel}</p>
+            {estimatedDuration && (
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600 whitespace-nowrap">
+                <Clock className="w-3.5 h-3.5" />
+                {estimatedDuration}
+              </span>
+            )}
+          </div>
           <h1 className="text-2xl font-semibold text-slate-900 mt-1">{templateName}</h1>
           {description && <p className="text-slate-500 mt-2">{description}</p>}
         </div>
