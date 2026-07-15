@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { saveUploadedFile } from "@/lib/storage";
+import { saveUploadedFile, UploadRejectedError } from "@/lib/storage";
+import { isRateLimited } from "@/lib/rateLimit";
 
 export async function POST(request: Request) {
   const formData = await request.formData();
@@ -11,6 +12,13 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "file и token обязательны" }, { status: 400 });
   }
 
+  if (isRateLimited(`upload:${token}`, 30, 10 * 60 * 1000)) {
+    return NextResponse.json(
+      { error: "Слишком много загрузок, попробуйте позже" },
+      { status: 429 }
+    );
+  }
+
   const submission = await prisma.submission.findUnique({ where: { token } });
   if (!submission) {
     return NextResponse.json({ error: "not found" }, { status: 404 });
@@ -19,6 +27,13 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "already submitted" }, { status: 403 });
   }
 
-  const saved = await saveUploadedFile(file, `submissions/${submission.id}`);
-  return NextResponse.json(saved);
+  try {
+    const saved = await saveUploadedFile(file, `submissions/${submission.id}`);
+    return NextResponse.json(saved);
+  } catch (e) {
+    if (e instanceof UploadRejectedError) {
+      return NextResponse.json({ error: e.message }, { status: 400 });
+    }
+    throw e;
+  }
 }

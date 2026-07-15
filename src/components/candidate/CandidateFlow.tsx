@@ -41,6 +41,7 @@ export function CandidateFlow({
   const [missing, setMissing] = useState<Set<string>>(new Set());
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [uploadErrors, setUploadErrors] = useState<Record<string, string>>({});
   const timers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
 
   function saveAnswer(blockId: string, type: string, value: unknown) {
@@ -93,13 +94,20 @@ export function CandidateFlow({
     }
 
     const uploaded: { url: string; name: string }[] = [];
+    let lastError: string | null = null;
     for (const file of Array.from(files)) {
       const fd = new FormData();
       fd.append("file", file);
       fd.append("token", token);
       const res = await fetch("/api/public/upload", { method: "POST", body: fd });
-      if (res.ok) uploaded.push(await res.json());
+      if (res.ok) {
+        uploaded.push(await res.json());
+      } else {
+        const data = await res.json().catch(() => ({}));
+        lastError = data.error ?? "Не удалось загрузить файл";
+      }
     }
+    setUploadErrors((prev) => ({ ...prev, [block.id]: lastError ?? "" }));
     setAnswer(block.id, "file_upload", { files: [...current, ...uploaded] }, false);
   }
 
@@ -187,7 +195,7 @@ export function CandidateFlow({
                       <a
                         href={f.url}
                         target="_blank"
-                        rel="noreferrer"
+                        rel="noreferrer noopener"
                         className="text-sm text-blue-600 hover:underline"
                       >
                         📎 {f.name}
@@ -253,6 +261,9 @@ export function CandidateFlow({
                       </li>
                     ))}
                   </ul>
+                  {uploadErrors[block.id] && (
+                    <p className="text-xs text-red-600">{uploadErrors[block.id]}</p>
+                  )}
                 </div>
               )}
 

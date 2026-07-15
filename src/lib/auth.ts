@@ -1,4 +1,4 @@
-import { createHash } from "crypto";
+import { createHash, timingSafeEqual } from "crypto";
 
 export const ADMIN_COOKIE_NAME = "tt_admin_session";
 
@@ -8,7 +8,14 @@ export function expectedAdminToken(): string {
   return createHash("sha256").update(`${password}:${secret}`).digest("hex");
 }
 
+export function timingSafeStringEqual(a: string, b: string): boolean {
+  const bufA = Buffer.from(a);
+  const bufB = Buffer.from(b);
+  if (bufA.length !== bufB.length) return false;
+  return timingSafeEqual(bufA, bufB);
+}
+
 export function isValidAdminToken(token: string | undefined | null): boolean {
   if (!token) return false;
-  return token === expectedAdminToken();
+  return timingSafeStringEqual(token, expectedAdminToken());
 }

@@ -129,8 +129,12 @@ export function TemplateBuilder({
 
   // Cancel means "stay on this page" (standard dialog semantics) — the user can
   // simply click the same link again once ready. OK saves and navigates in one go,
-  // so there is never a need to click the destination link a second time.
-  function guardNav(e: React.MouseEvent, href: string, newTab?: boolean) {
+  // so there is never a need to click the destination link a second time. Preview
+  // navigates in the same tab (rather than opening a new one) specifically so this
+  // save-then-go doesn't depend on window.open surviving an async gap after the
+  // confirm() dialog — that pattern is unreliable across real browsers' popup
+  // blockers even though it works in automated/headless testing.
+  function guardNav(e: React.MouseEvent, href: string) {
     if (!dirty) return;
     e.preventDefault();
 
@@ -139,18 +143,10 @@ export function TemplateBuilder({
     );
     if (!wantsSave) return;
 
-    const pendingWin = newTab ? window.open("", "_blank") : null;
     saveTemplate().then((ok) => {
-      if (!ok) {
-        pendingWin?.close();
-        return;
-      }
-      if (newTab) {
-        if (pendingWin) pendingWin.location.href = href;
-      } else {
-        router.push(href);
-        router.refresh();
-      }
+      if (!ok) return;
+      router.push(href);
+      router.refresh();
     });
   }
 
@@ -172,8 +168,7 @@ export function TemplateBuilder({
           <div className="flex items-center gap-2">
             <Link
               href={previewHref}
-              target="_blank"
-              onClick={(e) => guardNav(e, previewHref, true)}
+              onClick={(e) => guardNav(e, previewHref)}
               className="inline-flex items-center gap-1.5 rounded-lg bg-slate-100 text-slate-700 px-4 py-2 text-sm font-medium hover:bg-slate-200"
             >
               <Eye className="w-4 h-4" />

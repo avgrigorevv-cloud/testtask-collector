@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import type { Block, ImageAnnotateAnswerValue } from "@/lib/blocks";
 import { ImageAnnotate } from "@/components/shared/ImageAnnotate";
 import { BackLink } from "@/components/admin/BackLink";
+import { isSafeExternalUrl } from "@/lib/url";
 
 export const dynamic = "force-dynamic";
 
@@ -67,7 +68,7 @@ export default async function SubmissionDetailPage({
                     <a
                       href={f.url}
                       target="_blank"
-                      rel="noreferrer"
+                      rel="noreferrer noopener"
                       className="text-sm text-blue-600 hover:underline"
                     >
                       {f.name}
@@ -107,11 +108,18 @@ export default async function SubmissionDetailPage({
 
 function AnswerLink({ value }: { value?: { url?: string } }) {
   if (!value?.url) return <EmptyAnswer />;
+  if (!isSafeExternalUrl(value.url)) {
+    return (
+      <p className="text-sm text-red-600 break-all">
+        Ссылка отклонена как небезопасная: {value.url}
+      </p>
+    );
+  }
   return (
     <a
       href={value.url}
       target="_blank"
-      rel="noreferrer"
+      rel="noreferrer noopener"
       className="text-sm text-blue-600 hover:underline break-all"
     >
       {value.url}
@@ -133,7 +141,7 @@ function AnswerFiles({ value }: { value?: { files?: { url: string; name: string 
           <a
             href={f.url}
             target="_blank"
-            rel="noreferrer"
+            rel="noreferrer noopener"
             className="text-sm text-blue-600 hover:underline"
           >
             {f.name}

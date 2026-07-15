@@ -19,7 +19,7 @@ export default async function TemplatePreviewPage({
 
   return (
     <div>
-      <div className="max-w-2xl mx-auto px-4 pt-6">
+      <div className="max-w-2xl mx-auto px-4 pb-4">
         <BackLink href={`/admin/templates/${id}`}>{template.name}</BackLink>
       </div>
       <CandidateFlow
