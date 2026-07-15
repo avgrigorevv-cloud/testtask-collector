@@ -44,3 +44,40 @@ jobs:
           ufw status verbose 2>&1 || true
           echo "--- iptables -L -n ---"
           iptables -L -n 2>&1 || true
+
+      - name: caddy presence
+        run: |
+          echo "--- which caddy ---"
+          which caddy 2>&1 || echo "caddy not on PATH"
+          echo "--- caddy version ---"
+          caddy version 2>&1 || true
+          echo "--- systemctl status caddy ---"
+          systemctl status caddy --no-pager 2>&1 || true
+          echo "--- /etc/caddy ---"
+          ls -la /etc/caddy 2>&1 || true
+          cat /etc/caddy/Caddyfile 2>&1 || true
+
+      - name: sudo and identity
+        run: |
+          echo "--- whoami / id ---"
+          whoami
+          id
+          echo "--- sudo -n true ---"
+          sudo -n true 2>&1 && echo "SUDO_NOPASSWD_OK" || echo "SUDO_NOPASSWD_NO"
+          echo "--- sudo -l (non-interactive) ---"
+          sudo -n -l 2>&1 || true
+
+      - name: what owns 443 and other odd ports
+        run: |
+          for p in 443 2096 8443 16546 34444 39462 2222; do
+            echo "--- probe $p ---"
+            curl -iskS --max-time 3 "https://127.0.0.1:$p/" 2>&1 | head -20
+            echo "--- headers only http $p ---"
+            curl -isS --max-time 3 "http://127.0.0.1:$p/" 2>&1 | head -10
+          done
+          echo "--- docker port testtask-collector ---"
+          docker port testtask-collector 2>&1 || true
+          echo "--- docker inspect network mode ---"
+          docker inspect -f '{{.HostConfig.NetworkMode}} {{.NetworkSettings.Ports}}' testtask-collector 2>&1 || true
+          echo "--- listening processes via /proc fallback (no root) ---"
+          for f in /proc/[0-9]*/cmdline; do pid=$(echo "$f" | cut -d/ -f3); tr '\0' ' ' < "$f" 2>/dev/null; echo " (pid $pid)"; done 2>&1 | grep -iE "nginx|caddy|apache|panel|plesk|cpanel|hestia|traefik" || echo "no match in visible process list"
