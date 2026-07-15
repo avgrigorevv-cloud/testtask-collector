@@ -30,13 +30,13 @@ export default async function EditTemplatePage({
           <Link
             href={`/admin/templates/${id}/preview`}
             target="_blank"
-            className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium hover:bg-slate-100"
+            className="rounded-lg bg-slate-100 text-slate-700 px-4 py-2 text-sm font-medium hover:bg-slate-200"
           >
             Предпросмотр
           </Link>
           <Link
             href={`/admin/templates/${id}/submissions`}
-            className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium hover:bg-slate-100"
+            className="rounded-lg bg-slate-900 text-white px-4 py-2 text-sm font-medium hover:bg-slate-800"
           >
             Прохождения →
           </Link>

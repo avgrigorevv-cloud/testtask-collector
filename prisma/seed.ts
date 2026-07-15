@@ -17,7 +17,7 @@ const devInternBlocks: Block[] = [
     type: "attachment",
     title: "Условия задания",
     description:
-      "Пайплайн для очистки и подсчёта UMUX-Lite скора. Полное описание — в PDF.",
+      "Пайплайн для очистки и подсчёта UMUX-Lite скора. Полное описание — в PDF",
     required: false,
     config: {
       files: [
@@ -28,14 +28,14 @@ const devInternBlocks: Block[] = [
   block({
     type: "link",
     title: "Ссылка на репозиторий с решением",
-    description: "Публичный git-репозиторий (GitHub/GitLab) с кодом, README и результатом визуализации.",
+    description: "Публичный git-репозиторий (GitHub/GitLab) с кодом, README и результатом визуализации",
     required: true,
     config: { placeholder: "https://github.com/username/umux-pipeline" },
   }),
   block({
     type: "text",
     title: "Что не успели или сделали бы иначе",
-    description: "Необязательный комментарий к решению.",
+    description: "Необязательный комментарий к решению",
     required: false,
     config: { multiline: true, placeholder: "" },
   }),
@@ -46,7 +46,7 @@ const researcherBlocks: Block[] = [
     type: "text",
     title: "Контекст задания",
     description:
-      "Перед вами три скриншота главной страницы страховой компании СОГАЗ (десктоп и мобильная версия). Проведите экспресс-исследование: отметьте на скриншотах конкретные проблемы юзабилити и кликните на месте, где вы их видите — оставьте комментарий к каждой отметке.",
+      "Перед вами три скриншота главной страницы страховой компании СОГАЗ (десктоп и мобильная версия). Проведите экспресс-исследование: отметьте на скриншотах конкретные проблемы юзабилити и кликните на месте, где вы их видите — оставьте комментарий к каждой отметке",
     required: false,
     config: { multiline: true, placeholder: "" },
   }),
@@ -54,7 +54,7 @@ const researcherBlocks: Block[] = [
     type: "image_annotate",
     title: "Разметка проблем на главной странице sogaz.ru",
     description:
-      "Кликните по скриншоту в месте проблемы и опишите, что не так и почему это мешает пользователю.",
+      "Кликните по скриншоту в месте проблемы и опишите, что не так и почему это мешает пользователю",
     required: true,
     config: {
       images: [
@@ -78,28 +78,28 @@ const designerBlocks: Block[] = [
     type: "text",
     title: "Задание",
     description:
-      "Пришлите портфолио и, при желании, ссылки на профили (Behance/Dribbble). Дополнительно можно оставить пару замечаний по дизайну главной страницы sogaz.ru — как будто это ваш реальный клиентский проект.",
+      "Пришлите портфолио и, при желании, ссылки на профили (Behance/Dribbble). Дополнительно можно оставить пару замечаний по дизайну главной страницы sogaz.ru — как будто это ваш реальный клиентский проект",
     required: false,
     config: { multiline: true, placeholder: "" },
   }),
   block({
     type: "file_upload",
     title: "Портфолио",
-    description: "PDF или архив с примерами работ.",
+    description: "PDF или архив с примерами работ",
     required: true,
     config: { accept: ".pdf,.zip", maxFiles: 3 },
   }),
   block({
     type: "link",
     title: "Профиль (Behance / Dribbble / сайт)",
-    description: "Необязательно, если всё есть в портфолио.",
+    description: "Необязательно, если всё есть в портфолио",
     required: false,
     config: { placeholder: "https://behance.net/username" },
   }),
   block({
     type: "image_annotate",
     title: "Бонус: замечания по дизайну sogaz.ru",
-    description: "Необязательно. Кликните по скриншоту и оставьте комментарий.",
+    description: "Необязательно. Кликните по скриншоту и оставьте комментарий",
     required: false,
     config: {
       images: [{ url: "/uploads/seed/sogaz-01-hero.png", label: "Главная страница" }],
@@ -113,20 +113,20 @@ async function main() {
       name: "Backend-стажёр: UMUX-пайплайн",
       roleLabel: "Стажёр-разработчик",
       description:
-        "Собрать бэкенд-пайплайн для очистки и агрегации ответов опросника UMUX-Lite.",
+        "Собрать бэкенд-пайплайн для очистки и агрегации ответов опросника UMUX-Lite",
       blocks: devInternBlocks,
     },
     {
       name: "UX-исследователь: экспресс-аудит sogaz.ru",
       roleLabel: "Исследователь (middle/senior)",
       description:
-        "Провести экспресс-исследование главной страницы sogaz.ru по скриншотам и найти проблемы юзабилити.",
+        "Провести экспресс-исследование главной страницы sogaz.ru по скриншотам и найти проблемы юзабилити",
       blocks: researcherBlocks,
     },
     {
       name: "Дизайнер: портфолио + мини-ревью",
       roleLabel: "Дизайнер",
-      description: "Прислать портфолио и, по желанию, прокомментировать дизайн главной sogaz.ru.",
+      description: "Прислать портфолио и, по желанию, прокомментировать дизайн главной sogaz.ru",
       blocks: designerBlocks,
     },
   ];
