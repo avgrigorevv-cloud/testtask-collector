@@ -1,0 +1,50 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+    concurrency:
+      group: deploy-testtask-collector
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build image
+        run: docker build -t testtask-collector:${{ github.sha }} -t testtask-collector:latest .
+
+      - name: Stop old container
+        run: docker stop testtask-collector || true && docker rm testtask-collector || true
+
+      - name: Run new container
+        run: |
+          docker run -d \
+            -p 3000:3000 \
+            -e ADMIN_PASSWORD="${{ secrets.ADMIN_PASSWORD }}" \
+            -e ADMIN_SECRET="${{ secrets.ADMIN_SECRET }}" \
+            -e NEXT_PUBLIC_BASE_URL="${{ secrets.NEXT_PUBLIC_BASE_URL }}" \
+            -e DATABASE_URL="file:./dev.db" \
+            -v testtask-db:/app/prisma \
+            -v testtask-uploads:/app/public/uploads \
+            --restart unless-stopped \
+            --name testtask-collector \
+            testtask-collector:${{ github.sha }}
+
+      - name: Health check
+        run: |
+          for i in $(seq 1 15); do
+            if curl -fsS http://localhost:3000/admin >/dev/null; then
+              echo "up"; exit 0
+            fi
+            sleep 2
+          done
+          echo "container did not come up, dumping logs"
+          docker logs testtask-collector
+          exit 1
+
+      - name: Prune old images
+        run: docker image prune -f
