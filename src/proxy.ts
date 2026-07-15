@@ -8,6 +8,7 @@ export function proxy(request: NextRequest) {
   const isAdminPage = pathname.startsWith("/admin") && pathname !== "/admin/login";
   const isAdminApi =
     pathname.startsWith("/api/admin") && pathname !== "/api/admin/login";
+  const isCandidateTask = pathname.startsWith("/t/");
 
   if (isAdminPage || isAdminApi) {
     const token = request.cookies.get(ADMIN_COOKIE_NAME)?.value;
@@ -21,9 +22,14 @@ export function proxy(request: NextRequest) {
     }
   }
 
-  return NextResponse.next();
+  const response = NextResponse.next();
+  if (isCandidateTask) {
+    response.headers.set("Referrer-Policy", "no-referrer");
+    response.headers.set("X-Robots-Tag", "noindex, nofollow");
+  }
+  return response;
 }
 
 export const config = {
-  matcher: ["/admin/:path*", "/api/admin/:path*"],
+  matcher: ["/admin/:path*", "/api/admin/:path*", "/t/:path*"],
 };
