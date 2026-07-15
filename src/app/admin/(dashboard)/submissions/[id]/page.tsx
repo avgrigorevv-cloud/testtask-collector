@@ -43,7 +43,7 @@ export default async function SubmissionDetailPage({
                 : "bg-amber-100 text-amber-700"
             }`}
           >
-            {submission.status === "submitted" ? "Отправлено" : "В процессе"}
+            {submission.status === "submitted" ? "Ответ получен" : "В процессе"}
           </span>
         </div>
         {submission.submittedAt && (

@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 
 const STATUS_LABELS: Record<string, string> = {
   pending: "Не завершено",
-  submitted: "Отправлено",
+  submitted: "Ответ получен",
 };
 
 export default async function TemplateSubmissionsPage({
