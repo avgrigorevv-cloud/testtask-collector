@@ -2,6 +2,7 @@ import { PrismaClient } from "../src/generated/prisma/client";
 import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
 import { randomUUID } from "crypto";
 import type { Block } from "../src/lib/blocks";
+import { generateToken } from "../src/lib/token";
 
 const adapter = new PrismaBetterSqlite3({
   url: process.env.DATABASE_URL ?? "file:./dev.db",
@@ -241,6 +242,7 @@ async function main() {
     const submission = await prisma.submission.create({
       data: {
         templateId: created.id,
+        token: generateToken(),
         status: "submitted",
         submittedAt: new Date(),
       },

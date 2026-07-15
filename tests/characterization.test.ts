@@ -6,6 +6,7 @@ import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { prisma } from "../src/lib/prisma.ts";
+import { generateToken } from "../src/lib/token.ts";
 import type { Block } from "../src/lib/blocks.ts";
 import { POST as createSubmission } from "../src/app/api/admin/templates/[id]/submissions/route.ts";
 import { POST as saveAnswer } from "../src/app/api/public/submissions/[token]/answers/route.ts";
@@ -41,7 +42,9 @@ after(async () => {
 });
 
 test("GET /t/<token> serves the task for a valid token", async () => {
-  const submission = await prisma.submission.create({ data: { templateId } });
+  const submission = await prisma.submission.create({
+    data: { templateId, token: generateToken() },
+  });
 
   const element = await CandidatePage({
     params: Promise.resolve({ token: submission.token }),
@@ -81,7 +84,9 @@ test("admin creates a Submission for a template", async () => {
 });
 
 test("submitted answers are saved and upserted by blockId", async () => {
-  const submission = await prisma.submission.create({ data: { templateId } });
+  const submission = await prisma.submission.create({
+    data: { templateId, token: generateToken() },
+  });
 
   const first = await saveAnswer(
     new Request(`http://localhost/api/public/submissions/${submission.token}/answers`, {

@@ -3,6 +3,7 @@ import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { prisma } from "../src/lib/prisma.ts";
+import { generateToken } from "../src/lib/token.ts";
 import CandidatePage from "../src/app/t/[token]/page.tsx";
 
 let templateId: string;
@@ -24,7 +25,9 @@ after(async () => {
 });
 
 test("first GET sets status to 'opened' and stamps openedAt", async () => {
-  const submission = await prisma.submission.create({ data: { templateId } });
+  const submission = await prisma.submission.create({
+    data: { templateId, token: generateToken() },
+  });
   assert.equal(submission.status, "pending");
   assert.equal(submission.openedAt, null);
 
@@ -36,7 +39,9 @@ test("first GET sets status to 'opened' and stamps openedAt", async () => {
 });
 
 test("second GET does not move openedAt", async () => {
-  const submission = await prisma.submission.create({ data: { templateId } });
+  const submission = await prisma.submission.create({
+    data: { templateId, token: generateToken() },
+  });
 
   await CandidatePage({ params: Promise.resolve({ token: submission.token }) });
   const firstOpen = await prisma.submission.findUniqueOrThrow({ where: { id: submission.id } });
@@ -50,7 +55,13 @@ test("second GET does not move openedAt", async () => {
 
 test("GET on an already-submitted submission does not downgrade its status", async () => {
   const submission = await prisma.submission.create({
-    data: { templateId, status: "submitted", submittedAt: new Date(), openedAt: new Date() },
+    data: {
+      templateId,
+      token: generateToken(),
+      status: "submitted",
+      submittedAt: new Date(),
+      openedAt: new Date(),
+    },
   });
 
   await CandidatePage({ params: Promise.resolve({ token: submission.token }) });
