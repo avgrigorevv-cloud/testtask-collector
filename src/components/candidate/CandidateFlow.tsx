@@ -21,6 +21,7 @@ export function CandidateFlow({
   blocks,
   initialAnswers,
   initialStatus,
+  preview = false,
 }: {
   token: string;
   templateName: string;
@@ -29,6 +30,7 @@ export function CandidateFlow({
   blocks: Block[];
   initialAnswers: AnswersState;
   initialStatus: string;
+  preview?: boolean;
 }) {
   const [answers, setAnswers] = useState<AnswersState>(initialAnswers);
   const [status, setStatus] = useState(initialStatus);
@@ -38,6 +40,7 @@ export function CandidateFlow({
   const timers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
 
   function saveAnswer(blockId: string, type: string, value: unknown) {
+    if (preview) return Promise.resolve();
     return fetch(`/api/public/submissions/${token}/answers`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -78,6 +81,13 @@ export function CandidateFlow({
     if (!files || files.length === 0) return;
     const current =
       (answers[block.id] as FileUploadAnswerValue | undefined)?.files ?? [];
+
+    if (preview) {
+      const fake = Array.from(files).map((f) => ({ url: "#", name: f.name }));
+      setAnswer(block.id, "file_upload", { files: [...current, ...fake] }, false);
+      return;
+    }
+
     const uploaded: { url: string; name: string }[] = [];
     for (const file of Array.from(files)) {
       const fd = new FormData();
@@ -90,6 +100,7 @@ export function CandidateFlow({
   }
 
   async function handleSubmit() {
+    if (preview) return;
     setSubmitting(true);
     setSubmitError(null);
     await flushPendingSaves();
@@ -126,6 +137,11 @@ export function CandidateFlow({
 
   return (
     <div className="min-h-screen bg-slate-50">
+      {preview && (
+        <div className="sticky top-0 z-10 bg-amber-400 text-amber-950 text-sm text-center py-2 font-medium">
+          Предпросмотр — вы видите то, что увидит кандидат. Ответы не сохраняются.
+        </div>
+      )}
       <div className="max-w-2xl mx-auto px-4 py-10 space-y-8">
         <div>
           <p className="text-xs uppercase tracking-wide text-slate-400">{roleLabel}</p>
@@ -243,10 +259,11 @@ export function CandidateFlow({
 
         <button
           onClick={handleSubmit}
-          disabled={submitting}
+          disabled={submitting || preview}
+          title={preview ? "В режиме предпросмотра отправка отключена" : undefined}
           className="w-full rounded-lg bg-slate-900 text-white py-3 text-sm font-medium hover:bg-slate-800 disabled:opacity-50"
         >
-          {submitting ? "Отправка..." : "Отправить задание"}
+          {preview ? "Отправить задание (недоступно в предпросмотре)" : submitting ? "Отправка..." : "Отправить задание"}
         </button>
       </div>
     </div>

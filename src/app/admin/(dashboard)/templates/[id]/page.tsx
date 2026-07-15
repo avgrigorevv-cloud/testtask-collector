@@ -19,14 +19,28 @@ export default async function EditTemplatePage({
 
   return (
     <div className="space-y-6">
+      <div>
+        <Link href="/admin" className="text-sm text-slate-500 hover:text-slate-900">
+          ← Шаблоны
+        </Link>
+      </div>
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold text-slate-900">Редактирование шаблона</h1>
-        <Link
-          href={`/admin/templates/${id}/submissions`}
-          className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium hover:bg-slate-100"
-        >
-          Прохождения →
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link
+            href={`/admin/templates/${id}/preview`}
+            target="_blank"
+            className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium hover:bg-slate-100"
+          >
+            Предпросмотр
+          </Link>
+          <Link
+            href={`/admin/templates/${id}/submissions`}
+            className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium hover:bg-slate-100"
+          >
+            Прохождения →
+          </Link>
+        </div>
       </div>
       <TemplateBuilder
         initial={{
