@@ -241,7 +241,6 @@ async function main() {
     const submission = await prisma.submission.create({
       data: {
         templateId: created.id,
-        candidateName: "Демо-кандидат",
         status: "submitted",
         submittedAt: new Date(),
       },

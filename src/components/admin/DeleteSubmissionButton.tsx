@@ -4,18 +4,12 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Trash2 } from "lucide-react";
 
-export function DeleteSubmissionButton({
-  submissionId,
-  candidateName,
-}: {
-  submissionId: string;
-  candidateName: string;
-}) {
+export function DeleteSubmissionButton({ submissionId }: { submissionId: string }) {
   const router = useRouter();
   const [deleting, setDeleting] = useState(false);
 
   async function handleDelete() {
-    if (!confirm(`Удалить прохождение «${candidateName}»? Это действие необратимо`)) {
+    if (!confirm("Удалить это прохождение? Это действие необратимо")) {
       return;
     }
     setDeleting(true);

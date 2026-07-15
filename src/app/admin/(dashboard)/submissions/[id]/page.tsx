@@ -32,7 +32,7 @@ export default async function SubmissionDetailPage({
         </BackLink>
         <div className="flex items-center justify-between mt-3">
           <h1 className="text-2xl font-semibold text-slate-900">
-            {submission.candidateName || "Без имени"}
+            Прохождение #{submission.id.slice(-6)}
           </h1>
           <span
             className={`text-xs font-medium px-2.5 py-1 rounded-full ${

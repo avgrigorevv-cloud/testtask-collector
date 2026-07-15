@@ -23,7 +23,6 @@ export async function GET(_request: Request, { params }: Params) {
   return NextResponse.json({
     id: submission.id,
     token: submission.token,
-    candidateName: submission.candidateName,
     status: submission.status,
     createdAt: submission.createdAt,
     submittedAt: submission.submittedAt,

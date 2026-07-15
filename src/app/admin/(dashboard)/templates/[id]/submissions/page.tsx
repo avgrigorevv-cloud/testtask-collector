@@ -52,7 +52,7 @@ export default async function TemplateSubmissionsPage({
             <div>
               <div className="flex items-center gap-2">
                 <p className="font-medium text-slate-900">
-                  {s.candidateName || "Без имени"}
+                  Прохождение #{s.id.slice(-6)}
                 </p>
                 <span
                   className={`text-xs font-medium px-2 py-0.5 rounded-full ${
@@ -76,7 +76,7 @@ export default async function TemplateSubmissionsPage({
                 Смотреть ответ
               </Link>
               <CopyLinkButton path={`/t/${s.token}`} />
-              <DeleteSubmissionButton submissionId={s.id} candidateName={s.candidateName || "Без имени"} />
+              <DeleteSubmissionButton submissionId={s.id} />
             </div>
           </div>
         ))}
