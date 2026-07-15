@@ -248,7 +248,7 @@ export function TemplateBuilder({
               + {BLOCK_TYPE_LABELS[type]}
             </button>
           ))}
-          {INPUT_BLOCK_TYPES.map((type) => (
+          {INPUT_BLOCK_TYPES.filter((type) => type !== "file_upload").map((type) => (
             <button
               key={type}
               onClick={() => addBlock(type)}
