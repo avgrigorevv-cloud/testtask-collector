@@ -10,6 +10,7 @@ export const dynamic = "force-dynamic";
 
 const STATUS_LABELS: Record<string, string> = {
   pending: "В работе",
+  opened: "Открыто кандидатом",
   submitted: "Ответ получен",
 };
 
