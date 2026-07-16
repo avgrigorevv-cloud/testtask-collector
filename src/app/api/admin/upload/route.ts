@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { saveUploadedFile, UploadRejectedError } from "@/lib/storage";
+import { saveAdminUploadedFile, UploadRejectedError } from "@/lib/storage";
 
 export async function POST(request: Request) {
   const formData = await request.formData();
@@ -10,7 +10,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const saved = await saveUploadedFile(file, "admin");
+    const saved = await saveAdminUploadedFile(file);
     return NextResponse.json(saved);
   } catch (e) {
     if (e instanceof UploadRejectedError) {
