@@ -8,6 +8,7 @@ on:
 jobs:
   deploy:
     runs-on: self-hosted
+    environment: env_prod
     concurrency:
       group: deploy-testtask-collector
       cancel-in-progress: false
