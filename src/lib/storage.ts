@@ -2,11 +2,16 @@ import { writeFile, mkdir } from "fs/promises";
 import path from "path";
 import { randomUUID } from "crypto";
 
-const PUBLIC_UPLOAD_ROOT = path.join(process.cwd(), "public", "uploads");
-// Non-public root: sibling of public/, so Next.js never serves it as static
-// content — candidate submission files must only be reachable through the
-// authorized route handler in src/app/api/files/submissions/[id]/[filename].
-const PRIVATE_UPLOAD_ROOT = path.join(process.cwd(), "uploads");
+// Root for everything the app writes to disk at runtime — outside public/ on
+// purpose. `next start` only reliably serves public/ content that existed at
+// build time; files written into public/ after the server has booted can 404
+// even though they exist on disk (confirmed in production — see TECH_DEBT.md
+// item #7). Both subdirs below are served through explicit route handlers
+// that read from disk on every request instead, sidestepping that entirely.
+// public/uploads/seed/ is the only upload-shaped content still under
+// public/, since it's committed to the repo and baked into the image at
+// build time — genuinely static, not written at runtime.
+const UPLOAD_ROOT = path.join(process.cwd(), "uploads");
 
 // Deliberately excludes anything a browser would execute or render as active
 // content if opened directly (html, svg, js, ...) — uploads are served as
@@ -65,17 +70,18 @@ function validateFile(file: File): string {
   return ext;
 }
 
-// Admin-uploaded content (template hero/background images etc.) — legitimately
-// public, served as static files under /uploads/admin/<file>. Unchanged
-// behavior; kept separate from submission uploads below.
+// Admin-uploaded content (template hero/background images, task attachments
+// etc.) — publicly readable (no auth check in the route handler), but still
+// served through src/app/api/files/admin/[filename]/route.ts rather than as
+// static files, for the next-start-doesn't-see-new-files reason above.
 export async function saveAdminUploadedFile(file: File) {
   const ext = validateFile(file);
   const buffer = Buffer.from(await file.arrayBuffer());
-  const dir = path.join(PUBLIC_UPLOAD_ROOT, "admin");
+  const dir = path.join(UPLOAD_ROOT, "admin");
   await mkdir(dir, { recursive: true });
   const safeName = `${randomUUID()}${ext}`;
   await writeFile(path.join(dir, safeName), buffer);
-  return { url: `/uploads/admin/${safeName}`, name: file.name };
+  return { url: `/api/files/admin/${safeName}`, name: file.name };
 }
 
 // Candidate-uploaded answer files — private, written under the non-public
@@ -84,7 +90,7 @@ export async function saveAdminUploadedFile(file: File) {
 export async function saveSubmissionUploadedFile(file: File, submissionId: string) {
   const ext = validateFile(file);
   const buffer = Buffer.from(await file.arrayBuffer());
-  const dir = path.join(PRIVATE_UPLOAD_ROOT, "submissions", submissionId);
+  const dir = path.join(UPLOAD_ROOT, "submissions", submissionId);
   await mkdir(dir, { recursive: true });
   const safeName = `${randomUUID()}${ext}`;
   await writeFile(path.join(dir, safeName), buffer);
@@ -95,5 +101,9 @@ export async function saveSubmissionUploadedFile(file: File, submissionId: strin
 }
 
 export function submissionFilePath(submissionId: string, filename: string): string {
-  return path.join(PRIVATE_UPLOAD_ROOT, "submissions", submissionId, filename);
+  return path.join(UPLOAD_ROOT, "submissions", submissionId, filename);
+}
+
+export function adminFilePath(filename: string): string {
+  return path.join(UPLOAD_ROOT, "admin", filename);
 }

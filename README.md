@@ -69,7 +69,7 @@ docker run -d \
   -e DATABASE_URL=file:./prisma/data/dev.db \
   -v testtask-db:/app/prisma/data \
   -v testtask-uploads-submissions:/app/uploads/submissions \
-  -v testtask-uploads-admin:/app/public/uploads/admin \
+  -v testtask-uploads-admin:/app/uploads/admin \
   testtask-collector
 ```
 
@@ -77,57 +77,24 @@ Volume монтируется на `/app/prisma/data` (не на весь `/app/
 сохранялся между перезапусками контейнера, а `migrations/` каждый раз бралась свежая из
 образа — иначе новые миграции из будущих деплоев будут перекрыты тем, что volume
 «заморозил» при первом запуске. По той же причине два runtime-write каталога монтируются
-по отдельности, а не общий `public/uploads`:
-`testtask-uploads-submissions` → `/app/uploads/submissions` (ответы кандидатов — **не** под
-`public/`, файлы не публичные и отдаются только через авторизованный route-handler
-`src/app/api/files/submissions/[id]/[filename]/route.ts`; запись — `src/lib/storage.ts` +
-`src/app/api/public/upload/route.ts`) и `testtask-uploads-admin` →
-`/app/public/uploads/admin` (файлы, загруженные админом, публичная статика,
-`src/app/api/admin/upload/route.ts`).
-`public/uploads/seed/` (демо-скриншоты и PDF) volume не монтируется вообще и всегда берётся
-из образа — это read-only-данные, в рантайме туда ничего не пишется. При первом запуске
-контейнер сам применяет миграции (`prisma migrate deploy`) — сид (`prisma db seed`) нужно
-прогнать один раз вручную (`docker exec <container> npx prisma db seed`), если нужны примеры
-шаблонов.
+по отдельности, а не общий `public/uploads`: `testtask-uploads-submissions` →
+`/app/uploads/submissions` и `testtask-uploads-admin` → `/app/uploads/admin`. Оба каталога
+специально **не под** `public/` — `next start` ненадёжно отдаёт файлы, записанные в
+`public/` уже после старта процесса (подтверждено на проде, см. `TECH_DEBT.md` пункт 7),
+поэтому оба вида загрузок отдаются через route-handlers
+(`src/app/api/files/submissions/[id]/[filename]/route.ts` — с проверкой токена/admin-сессии,
+`src/app/api/files/admin/[filename]/route.ts` — без авторизации, как и раньше), а не как
+статика. `public/uploads/seed/` (демо-скриншоты и PDF) volume не монтируется вообще и всегда
+берётся из образа — это read-only-данные, в рантайме туда ничего не пишется. При первом
+запуске контейнер сам применяет миграции (`prisma migrate deploy`) — сид (`prisma db seed`)
+нужно прогнать один раз вручную (`docker exec <container> npx prisma db seed`), если нужны
+примеры шаблонов.
 
-**Миграция с одного volume на два (разово, перед первым деплоем с новыми mount-путями):**
-старый `testtask-uploads` volume, смонтированный на весь `/app/public/uploads`, уже содержит
-реальные файлы кандидатов под `submissions/` и `admin/` (плюс `seed/`, который не важен —
-он и так придёт из образа). Прежде чем переключать `deploy.yml` на новые volume, перенесите
-их содержимое, иначе существующие вложения кандидатов будут недоступны:
-
-```bash
-# fails loudly if testtask-uploads doesn't exist — `docker run -v name:...` would
-# otherwise silently auto-create an empty volume and the copy below would look
-# like it "succeeded" while copying nothing
-docker volume inspect testtask-uploads >/dev/null
-
-docker volume create testtask-uploads-submissions
-docker volume create testtask-uploads-admin
-
-docker run --rm \
-  -v testtask-uploads:/old:ro \
-  -v testtask-uploads-submissions:/new \
-  alpine sh -c 'set -e
-    if [ -d /old/submissions ]; then cp -a /old/submissions/. /new/; else echo "no submissions/ in old volume, skipping"; fi
-    echo "submissions/: $(find /new -type f | wc -l) files copied"'
-
-docker run --rm \
-  -v testtask-uploads:/old:ro \
-  -v testtask-uploads-admin:/new \
-  alpine sh -c 'set -e
-    if [ -d /old/admin ]; then cp -a /old/admin/. /new/; else echo "no admin/ in old volume, skipping"; fi
-    echo "admin/: $(find /new -type f | wc -l) files copied"'
-```
-
-Проверьте, что напечатанное число файлов совпадает с ожиданиями (например, сверьте с
-`docker run --rm -v testtask-uploads:/old alpine find /old/submissions -type f | wc -l`),
-прежде чем переключать `deploy.yml` и тем более удалять старый volume.
-
-После этого можно деплоить версию `deploy.yml` с новыми `-v testtask-uploads-submissions:...`
-и `-v testtask-uploads-admin:...` — старый `testtask-uploads` volume можно оставить
-нетронутым до подтверждения, что новые volume содержат все файлы, и удалить позже
-(`docker volume rm testtask-uploads`).
+**Разовая миграция (2026-07-16):** `testtask-uploads-admin` ранее монтировался на
+`/app/public/uploads/admin`, теперь — на `/app/uploads/admin`. Volume тот же (данные внутри
+не теряются — Docker volume идентифицируется по имени, не по точке монтирования), поэтому
+никаких ручных действий не требуется — после деплоя этой версии просто проверьте, что
+admin-файлы (вложения к заданиям) открываются.
 
 Если в будущем понадобится serverless-хостинг (Vercel и т.п.), архитектуру нужно будет
 поменять: SQLite → Postgres (например, через `@prisma/adapter-pg`), а `public/uploads` →

@@ -39,9 +39,12 @@ COPY --from=builder /app/prisma.config.ts ./prisma.config.ts
 ENV NODE_ENV=production
 EXPOSE 3000
 
-# prisma/data/dev.db, uploads/submissions/ (non-public, served only via an
-# authorized route handler) and public/uploads/admin/ must be on mounted volumes —
-# see README "Деплой". Only mount prisma/data/ and the two runtime-written uploads
-# dirs, not all of prisma/ or all of public/uploads/, so future images' migrations/
-# and seed/ files aren't shadowed by a stale copy frozen into the volume on its first run.
+# prisma/data/dev.db and uploads/{submissions,admin}/ must be on mounted volumes —
+# see README "Деплой". Both uploads dirs live outside public/ and are served through
+# route handlers (src/app/api/files/**) instead of Next's static public/ serving,
+# since `next start` doesn't reliably pick up files written into public/ after the
+# server has booted (confirmed in production — see TECH_DEBT.md item #7). Only mount
+# prisma/data/ and the two uploads dirs, not all of prisma/ or all of public/, so
+# future images' migrations/ and public/uploads/seed/ aren't shadowed by a stale
+# copy frozen into the volume on its first run.
 CMD ["sh", "-c", "npx prisma migrate deploy && npm run start"]

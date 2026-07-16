@@ -36,7 +36,7 @@ jobs:
             -e DATABASE_URL="file:./prisma/data/dev.db" \
             -v testtask-db:/app/prisma/data \
             -v testtask-uploads-submissions:/app/uploads/submissions \
-            -v testtask-uploads-admin:/app/public/uploads/admin \
+            -v testtask-uploads-admin:/app/uploads/admin \
             --restart unless-stopped \
             --name testtask-collector \
             testtask-collector:${{ github.sha }}
