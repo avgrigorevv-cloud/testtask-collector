@@ -54,7 +54,7 @@ test("GET /t/<token> serves the task for a valid token", async () => {
   assert.equal(element.props.token, submission.token);
   assert.equal(element.props.templateName, templateName);
   assert.deepEqual(element.props.blocks, [textBlock]);
-  assert.equal(element.props.initialStatus, "opened");
+  assert.equal(element.props.initialStatus, "pending");
 });
 
 test("GET /t/<token> 404s for an unknown token", async () => {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Clock } from "lucide-react";
 import {
   isDisplayOnlyBlock,
@@ -43,6 +43,16 @@ export function CandidateFlow({
   const [submitting, setSubmitting] = useState(false);
   const [uploadErrors, setUploadErrors] = useState<Record<string, string>>({});
   const timers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+
+  // Marks the submission "opened" only once a real browser actually renders
+  // this client component — link-preview bots fetch the page's HTML for OG
+  // tags but never run JS, so they no longer trigger this (see
+  // src/app/api/public/submissions/[token]/open/route.ts).
+  useEffect(() => {
+    if (preview || initialStatus !== "pending") return;
+    fetch(`/api/public/submissions/${token}/open`, { method: "POST" });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   function saveAnswer(blockId: string, type: string, value: unknown) {
     if (preview) return Promise.resolve();
