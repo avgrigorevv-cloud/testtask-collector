@@ -28,8 +28,8 @@ jobs:
             -e ADMIN_PASSWORD="${{ secrets.ADMIN_PASSWORD }}" \
             -e ADMIN_SECRET="${{ secrets.ADMIN_SECRET }}" \
             -e NEXT_PUBLIC_BASE_URL="${{ secrets.NEXT_PUBLIC_BASE_URL }}" \
-            -e DATABASE_URL="file:./dev.db" \
-            -v testtask-db:/app/prisma \
+            -e DATABASE_URL="file:./data/dev.db" \
+            -v testtask-db:/app/prisma/data \
             -v testtask-uploads:/app/public/uploads \
             --restart unless-stopped \
             --name testtask-collector \

@@ -42,14 +42,14 @@ npm run dev
 
 | Переменная | Назначение |
 | --- | --- |
-| `DATABASE_URL` | путь к SQLite-файлу, например `file:./dev.db` |
+| `DATABASE_URL` | путь к SQLite-файлу, например `file:./data/dev.db` |
 | `ADMIN_PASSWORD` | пароль для входа в `/admin` |
 | `ADMIN_SECRET` | соль для подписи сессионной cookie админа |
 | `NEXT_PUBLIC_BASE_URL` | базовый URL для кнопки «Копировать ссылку» в админке |
 
 ## Деплой
 
-Важно: приложение хранит данные в локальном SQLite-файле (`prisma/dev.db`) и в локальной
+Важно: приложение хранит данные в локальном SQLite-файле (`prisma/data/dev.db`) и в локальной
 файловой системе (`public/uploads`). Это значит, что хостинг должен давать **постоянный
 диск**, который не сбрасывается между деплоями/перезапусками — обычный serverless-хостинг
 (Vercel, Netlify Functions и т.п.) для этого не подходит: файлы и база будут теряться.
@@ -66,17 +66,19 @@ docker run -d \
   -e ADMIN_PASSWORD=... \
   -e ADMIN_SECRET=... \
   -e NEXT_PUBLIC_BASE_URL=https://your-domain.example \
-  -e DATABASE_URL=file:./dev.db \
-  -v testtask-db:/app/prisma \
+  -e DATABASE_URL=file:./data/dev.db \
+  -v testtask-db:/app/prisma/data \
   -v testtask-uploads:/app/public/uploads \
   testtask-collector
 ```
 
-Volume на `/app/prisma` сохраняет `dev.db` между перезапусками контейнера, volume на
-`/app/public/uploads` — загруженные админом и кандидатами файлы. При первом запуске
-контейнер сам применяет миграции (`prisma migrate deploy`) — сид (`prisma db seed`) нужно
-прогнать один раз вручную (`docker exec <container> npx prisma db seed`), если нужны
-примеры шаблонов.
+Volume монтируется на `/app/prisma/data` (не на весь `/app/prisma`!), чтобы файл `dev.db`
+сохранялся между перезапусками контейнера, а `migrations/` каждый раз бралась свежая из
+образа — иначе новые миграции из будущих деплоев будут перекрыты тем, что volume
+«заморозил» при первом запуске. Volume на `/app/public/uploads` — загруженные админом и
+кандидатами файлы. При первом запуске контейнер сам применяет миграции
+(`prisma migrate deploy`) — сид (`prisma db seed`) нужно прогнать один раз вручную
+(`docker exec <container> npx prisma db seed`), если нужны примеры шаблонов.
 
 Если в будущем понадобится serverless-хостинг (Vercel и т.п.), архитектуру нужно будет
 поменять: SQLite → Postgres (например, через `@prisma/adapter-pg`), а `public/uploads` →

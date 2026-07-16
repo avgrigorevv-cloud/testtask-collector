@@ -39,5 +39,7 @@ COPY --from=builder /app/prisma.config.ts ./prisma.config.ts
 ENV NODE_ENV=production
 EXPOSE 3000
 
-# prisma/dev.db and public/uploads must be on a mounted volume — see README "Деплой"
+# prisma/data/dev.db and public/uploads must be on a mounted volume — see README "Деплой".
+# Only mount the data/ subdir, not all of prisma/, so future images' migrations/
+# aren't shadowed by a stale copy frozen into the volume on its first run.
 CMD ["sh", "-c", "npx prisma migrate deploy && npm run start"]
