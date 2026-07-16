@@ -48,9 +48,12 @@ next-env.d.ts
 /dev.db-journal
 /prisma/dev.db
 /prisma/dev.db-journal
+/prisma/data/
 /prisma/test.db
 /prisma/test.db-journal
 
-# runtime candidate uploads (seed assets under public/uploads/seed are committed)
-/public/uploads/submissions
+# runtime candidate uploads (seed assets under public/uploads/seed are committed).
+# Non-public root, sibling of public/, served only via an authorized route handler —
+# see src/app/api/files/submissions/[id]/[filename]/route.ts.
+/uploads/submissions
 

@@ -21,6 +21,11 @@ jobs:
       - name: Stop old container
         run: docker stop testtask-collector || true && docker rm testtask-collector || true
 
+      - name: Verify required secrets are present
+        run: |
+          test -n "${{ secrets.ADMIN_PASSWORD }}" || { echo "::error::ADMIN_PASSWORD is empty — check env_prod secrets"; exit 1; }
+          test -n "${{ secrets.ADMIN_SECRET }}" || { echo "::error::ADMIN_SECRET is empty — check env_prod secrets"; exit 1; }
+
       - name: Run new container
         run: |
           docker run -d \
@@ -28,9 +33,10 @@ jobs:
             -e ADMIN_PASSWORD="${{ secrets.ADMIN_PASSWORD }}" \
             -e ADMIN_SECRET="${{ secrets.ADMIN_SECRET }}" \
             -e NEXT_PUBLIC_BASE_URL="${{ secrets.NEXT_PUBLIC_BASE_URL }}" \
-            -e DATABASE_URL="file:./data/dev.db" \
+            -e DATABASE_URL="file:./prisma/data/dev.db" \
             -v testtask-db:/app/prisma/data \
-            -v testtask-uploads:/app/public/uploads \
+            -v testtask-uploads-submissions:/app/uploads/submissions \
+            -v testtask-uploads-admin:/app/public/uploads/admin \
             --restart unless-stopped \
             --name testtask-collector \
             testtask-collector:${{ github.sha }}

@@ -42,7 +42,7 @@ npm run dev
 
 | Переменная | Назначение |
 | --- | --- |
-| `DATABASE_URL` | путь к SQLite-файлу, например `file:./data/dev.db` |
+| `DATABASE_URL` | путь к SQLite-файлу, например `file:./prisma/data/dev.db` — **должен указывать под `prisma/data/`**, потому что именно туда смонтирован volume `testtask-db` (см. ниже); значение резолвится относительно `process.cwd()` (в контейнере — `/app`), а не относительно `schema.prisma`, так как `@prisma/adapter-better-sqlite3` просто отрезает префикс `file:` и передаёт остаток в `better-sqlite3` как есть |
 | `ADMIN_PASSWORD` | пароль для входа в `/admin` |
 | `ADMIN_SECRET` | соль для подписи сессионной cookie админа |
 | `NEXT_PUBLIC_BASE_URL` | базовый URL для кнопки «Копировать ссылку» в админке |
@@ -66,23 +66,126 @@ docker run -d \
   -e ADMIN_PASSWORD=... \
   -e ADMIN_SECRET=... \
   -e NEXT_PUBLIC_BASE_URL=https://your-domain.example \
-  -e DATABASE_URL=file:./data/dev.db \
+  -e DATABASE_URL=file:./prisma/data/dev.db \
   -v testtask-db:/app/prisma/data \
-  -v testtask-uploads:/app/public/uploads \
+  -v testtask-uploads-submissions:/app/uploads/submissions \
+  -v testtask-uploads-admin:/app/public/uploads/admin \
   testtask-collector
 ```
 
 Volume монтируется на `/app/prisma/data` (не на весь `/app/prisma`!), чтобы файл `dev.db`
 сохранялся между перезапусками контейнера, а `migrations/` каждый раз бралась свежая из
 образа — иначе новые миграции из будущих деплоев будут перекрыты тем, что volume
-«заморозил» при первом запуске. Volume на `/app/public/uploads` — загруженные админом и
-кандидатами файлы. При первом запуске контейнер сам применяет миграции
-(`prisma migrate deploy`) — сид (`prisma db seed`) нужно прогнать один раз вручную
-(`docker exec <container> npx prisma db seed`), если нужны примеры шаблонов.
+«заморозил» при первом запуске. По той же причине два runtime-write каталога монтируются
+по отдельности, а не общий `public/uploads`:
+`testtask-uploads-submissions` → `/app/uploads/submissions` (ответы кандидатов — **не** под
+`public/`, файлы не публичные и отдаются только через авторизованный route-handler
+`src/app/api/files/submissions/[id]/[filename]/route.ts`; запись — `src/lib/storage.ts` +
+`src/app/api/public/upload/route.ts`) и `testtask-uploads-admin` →
+`/app/public/uploads/admin` (файлы, загруженные админом, публичная статика,
+`src/app/api/admin/upload/route.ts`).
+`public/uploads/seed/` (демо-скриншоты и PDF) volume не монтируется вообще и всегда берётся
+из образа — это read-only-данные, в рантайме туда ничего не пишется. При первом запуске
+контейнер сам применяет миграции (`prisma migrate deploy`) — сид (`prisma db seed`) нужно
+прогнать один раз вручную (`docker exec <container> npx prisma db seed`), если нужны примеры
+шаблонов.
+
+**Миграция с одного volume на два (разово, перед первым деплоем с новыми mount-путями):**
+старый `testtask-uploads` volume, смонтированный на весь `/app/public/uploads`, уже содержит
+реальные файлы кандидатов под `submissions/` и `admin/` (плюс `seed/`, который не важен —
+он и так придёт из образа). Прежде чем переключать `deploy.yml` на новые volume, перенесите
+их содержимое, иначе существующие вложения кандидатов будут недоступны:
+
+```bash
+# fails loudly if testtask-uploads doesn't exist — `docker run -v name:...` would
+# otherwise silently auto-create an empty volume and the copy below would look
+# like it "succeeded" while copying nothing
+docker volume inspect testtask-uploads >/dev/null
+
+docker volume create testtask-uploads-submissions
+docker volume create testtask-uploads-admin
+
+docker run --rm \
+  -v testtask-uploads:/old:ro \
+  -v testtask-uploads-submissions:/new \
+  alpine sh -c 'set -e
+    if [ -d /old/submissions ]; then cp -a /old/submissions/. /new/; else echo "no submissions/ in old volume, skipping"; fi
+    echo "submissions/: $(find /new -type f | wc -l) files copied"'
+
+docker run --rm \
+  -v testtask-uploads:/old:ro \
+  -v testtask-uploads-admin:/new \
+  alpine sh -c 'set -e
+    if [ -d /old/admin ]; then cp -a /old/admin/. /new/; else echo "no admin/ in old volume, skipping"; fi
+    echo "admin/: $(find /new -type f | wc -l) files copied"'
+```
+
+Проверьте, что напечатанное число файлов совпадает с ожиданиями (например, сверьте с
+`docker run --rm -v testtask-uploads:/old alpine find /old/submissions -type f | wc -l`),
+прежде чем переключать `deploy.yml` и тем более удалять старый volume.
+
+После этого можно деплоить версию `deploy.yml` с новыми `-v testtask-uploads-submissions:...`
+и `-v testtask-uploads-admin:...` — старый `testtask-uploads` volume можно оставить
+нетронутым до подтверждения, что новые volume содержат все файлы, и удалить позже
+(`docker volume rm testtask-uploads`).
 
 Если в будущем понадобится serverless-хостинг (Vercel и т.п.), архитектуру нужно будет
 поменять: SQLite → Postgres (например, через `@prisma/adapter-pg`), а `public/uploads` →
 объектное хранилище (S3-совместимое).
+
+## Бэкапы БД
+
+Данные живут в единственном docker volume (`testtask-db`) на одном VPS — без регулярного
+бэкапа `docker volume rm`, падение диска или неудачная миграция теряют всё без возможности
+восстановления. `scripts/backup-db.sh` делает согласованный снепшот через SQLite-команду
+`.backup` (не сырое копирование файла — избегает partial write на живой базе) внутри
+короткоживущего контейнера, который монтирует `testtask-db` volume только для чтения,
+сжимает результат gzip'ом и складывает в `BACKUP_DIR` с именем вида
+`dev-YYYYMMDD-HHMMSS.db.gz`, удаляя бэкапы старше `RETENTION_DAYS` дней. Скрипт завершается
+ненулевым кодом при любой ошибке — рассчитан на запуск из cron с проверкой кода возврата.
+
+**Проверить вручную один раз:**
+
+```bash
+chmod +x scripts/backup-db.sh   # если бит исполняемости не сохранился при клонировании
+./scripts/backup-db.sh
+# либо явно:
+BACKUP_DIR=/var/backups/testtask-collector RETENTION_DAYS=14 ./scripts/backup-db.sh
+```
+
+Убедитесь, что в `BACKUP_DIR` появился файл `dev-<timestamp>.db.gz` и что его можно
+распаковать и открыть sqlite3 (`gunzip -k <файл> && sqlite3 <файл без .gz> ".tables"`).
+
+**Поставить в cron на VPS** (например, ежедневно в 03:00, вывод — в лог-файл для алертинга
+по коду возврата/содержимому лога):
+
+```cron
+# crontab -e
+0 3 * * * BACKUP_DIR=/var/backups/testtask-collector RETENTION_DAYS=14 /path/to/testtask-collector/scripts/backup-db.sh >> /var/log/testtask-backup.log 2>&1
+```
+
+**Вынести бэкапы за пределы сервера.** Локальный бэкап на том же VPS не защищает от отказа
+самого VPS (диск, провайдер, компрометация хоста) — цель «за пределы сервера»
+(TECH_DEBT.md, п.6) этим одним скриптом не закрывается, это отдельный шаг. У проекта пока
+нет настроенного S3-бакета или второго хоста, поэтому здесь не прописаны конкретные
+credentials — вместо этого опишем форму решения, которую нужно донастроить вручную один раз
+тому, кто разворачивает бэкапы:
+
+- добавить в cron ещё один шаг после `backup-db.sh`, который синхронизирует `BACKUP_DIR` на
+  внешнее хранилище — например `rclone sync "$BACKUP_DIR" remote:testtask-backups` (S3-совместимое
+  хранилище, `remote` настраивается один раз через `rclone config`), либо `rsync`/`scp` на
+  второй хост:
+  ```cron
+  5 3 * * * rclone sync /var/backups/testtask-collector "${BACKUP_REMOTE:?set me}" >> /var/log/testtask-backup-sync.log 2>&1
+  ```
+- `BACKUP_REMOTE` (или аналогичная переменная) должен быть заполнен реальным значением тем,
+  кто настраивает сервер — это ручной one-time setup (создать бакет/хост, положить
+  креды/rclone-конфиг), не то, что скрипт должен знать или хардкодить.
+
+**На будущее** — если сервис станет бизнес-критичным, стоит рассмотреть
+[litestream](https://litestream.io/) для непрерывной репликации SQLite в S3-совместимое
+хранилище вместо периодических снепшотов (TECH_DEBT.md, п.6); здесь это не внедряется,
+только отметка на будущее.
 
 ## Безопасность
 
