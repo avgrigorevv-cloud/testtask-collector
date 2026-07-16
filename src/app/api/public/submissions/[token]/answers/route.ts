@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { isSafeExternalUrl } from "@/lib/url";
 import { isRateLimited } from "@/lib/rateLimit";
+import { isSubmissionExpired } from "@/lib/submissionExpiry";
 import type { Block } from "@/lib/blocks";
 
 type Params = { params: Promise<{ token: string }> };
@@ -47,6 +48,9 @@ export async function POST(request: Request, { params }: Params) {
   }
   if (submission.status === "submitted") {
     return NextResponse.json({ error: "already submitted" }, { status: 403 });
+  }
+  if (isSubmissionExpired(submission.expiresAt)) {
+    return NextResponse.json({ error: "ссылка истекла" }, { status: 403 });
   }
 
   const templateBlocks = JSON.parse(submission.template.blocks) as Block[];

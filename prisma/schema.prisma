@@ -28,6 +28,7 @@ model Submission {
   openedAt      DateTime?
   createdAt     DateTime  @default(now())
   submittedAt   DateTime?
+  expiresAt     DateTime?
   answers       Answer[]
 }
 

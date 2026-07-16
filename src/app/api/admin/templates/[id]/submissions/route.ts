@@ -6,12 +6,14 @@ import { generateToken } from "@/lib/token";
 type Params = { params: Promise<{ id: string }> };
 
 const MAX_TOKEN_ATTEMPTS = 5;
+const DEFAULT_EXPIRY_DAYS = 30;
 
 async function createSubmissionWithToken(templateId: string) {
+  const expiresAt = new Date(Date.now() + DEFAULT_EXPIRY_DAYS * 24 * 60 * 60 * 1000);
   for (let attempt = 0; attempt < MAX_TOKEN_ATTEMPTS; attempt++) {
     try {
       return await prisma.submission.create({
-        data: { templateId, token: generateToken() },
+        data: { templateId, token: generateToken(), expiresAt },
       });
     } catch (err) {
       const isTokenCollision =
