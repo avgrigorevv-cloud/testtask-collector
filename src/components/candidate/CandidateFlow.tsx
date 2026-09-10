@@ -162,7 +162,7 @@ export function CandidateFlow({
   return (
     <div className="min-h-screen bg-background">
       {preview && (
-        <div className="sticky top-0 z-10 bg-accent2 text-on-accent2 text-sm text-center py-2 font-medium">
+        <div className="sticky top-0 z-10 border-b border-accent2/30 bg-accent2-soft text-accent2-strong text-sm text-center py-2 font-medium">
           Предпросмотр — вы видите то, что увидит кандидат. Ответы не сохраняются.
         </div>
       )}

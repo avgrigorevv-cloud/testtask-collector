@@ -11,6 +11,7 @@ export default function AdminDashboardLayout({
       <div className="bg-blobs">
         <div className="blob blob-a" />
         <div className="blob blob-b" />
+        <div className="blob blob-c" />
       </div>
       <header className="sticky top-0 z-10 border-b border-line bg-white/80 backdrop-blur-sm">
         <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">

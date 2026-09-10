@@ -4,12 +4,21 @@ import { BLOCK_TYPE_LABELS, isDisplayOnlyBlock, type Block, type BlockType } fro
 import { AdminFileUpload } from "@/components/admin/AdminFileUpload";
 
 const BLOCK_TYPE_COLORS: Record<BlockType, string> = {
-  attachment: "bg-amber-50 text-amber-700",
-  info: "bg-slate-100 text-slate-600",
-  link: "bg-sky-50 text-sky-700",
-  text: "bg-violet-50 text-violet-700",
-  file_upload: "bg-emerald-50 text-emerald-700",
-  image_annotate: "bg-rose-50 text-rose-700",
+  attachment: "text-amber-600",
+  info: "text-accent",
+  link: "text-sky-600",
+  text: "text-violet-600",
+  file_upload: "text-emerald-600",
+  image_annotate: "text-rose-600",
+};
+
+const BLOCK_TYPE_BORDERS: Record<BlockType, string> = {
+  attachment: "border-l-amber-400",
+  info: "border-l-accent",
+  link: "border-l-sky-400",
+  text: "border-l-violet-400",
+  file_upload: "border-l-emerald-400",
+  image_annotate: "border-l-rose-400",
 };
 
 export function BlockEditorCard({
@@ -30,10 +39,12 @@ export function BlockEditorCard({
   isLast: boolean;
 }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-4 space-y-3 transition hover:shadow-md">
+    <div
+      className={`rounded-2xl border border-line border-l-4 bg-white p-4 space-y-3 shadow-sm transition hover:shadow-md hover:-translate-y-0.5 ${BLOCK_TYPE_BORDERS[block.type]}`}
+    >
       <div className="flex items-center justify-between">
         <span
-          className={`text-xs font-medium uppercase tracking-wide px-2 py-0.5 rounded-full ${BLOCK_TYPE_COLORS[block.type]}`}
+          className={`text-xs font-bold uppercase tracking-wide ${BLOCK_TYPE_COLORS[block.type]}`}
         >
           {BLOCK_TYPE_LABELS[block.type]}
         </span>

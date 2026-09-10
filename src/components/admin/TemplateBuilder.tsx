@@ -257,11 +257,11 @@ export function TemplateBuilder({
 
       {error && <p className="text-sm text-red-600">{error}</p>}
 
-      <div className="flex w-full flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-2 shadow-sm xl:fixed xl:right-6 xl:top-36 xl:z-20 xl:w-44 xl:gap-4 xl:shadow-lg">
+      <div className="flex w-full flex-col gap-3 rounded-2xl border border-line bg-white p-2 shadow-sm min-[1600px]:fixed min-[1600px]:right-6 min-[1600px]:top-36 min-[1600px]:z-20 min-[1600px]:w-44 min-[1600px]:gap-4 min-[1600px]:shadow-lg">
         <button
           onClick={handleSaveClick}
           disabled={saving}
-          className="inline-flex w-full items-center justify-center gap-1.5 rounded-xl bg-lime-200 text-lime-900 px-3 py-2 text-sm font-medium shadow-sm transition hover:bg-lime-700 hover:text-white active:bg-lime-700 active:text-white disabled:opacity-50"
+          className="inline-flex w-full items-center justify-center gap-1.5 rounded-xl bg-emerald-50 text-emerald-700 px-3 py-2 text-sm font-medium shadow-sm transition hover:bg-emerald-700 hover:text-white active:bg-emerald-700 active:text-white disabled:opacity-50"
         >
           {saving ? "Сохранение..." : "Сохранить"}
         </button>
@@ -270,7 +270,7 @@ export function TemplateBuilder({
             <Link
               href={previewHref}
               onClick={(e) => guardNav(e, previewHref)}
-              className="inline-flex w-full items-center justify-center gap-1.5 rounded-xl bg-accent2-soft text-accent2-strong px-3 py-2 text-sm font-medium transition hover:bg-accent2 hover:text-white"
+              className="inline-flex w-full items-center justify-center gap-1.5 rounded-xl bg-accent2-soft text-accent2-strong px-3 py-2 text-sm font-medium transition hover:bg-amber-100"
             >
               <Eye className="w-4 h-4" />
               Предпросмотр
