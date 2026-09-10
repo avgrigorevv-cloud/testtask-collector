@@ -240,7 +240,7 @@ export function TemplateBuilder({
 
       {error && <p className="text-sm text-red-600">{error}</p>}
 
-      <div className="fixed right-6 top-36 z-20 flex w-44 flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-2 shadow-lg">
+      <div className="flex w-full flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-2 shadow-sm xl:fixed xl:right-6 xl:top-36 xl:z-20 xl:w-44 xl:gap-4 xl:shadow-lg">
         <button
           onClick={handleSaveClick}
           disabled={saving}
