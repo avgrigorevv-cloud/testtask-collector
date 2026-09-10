@@ -68,7 +68,7 @@ export function DropdownMenu({
           onClick={closeOnItemClick ? () => setOpen(false) : undefined}
           className={
             inline
-              ? `mt-2 overflow-hidden rounded-xl border border-line ${panelClassName ?? ""}`
+              ? `mt-2 max-h-[60vh] overflow-y-auto overflow-x-hidden rounded-xl border border-line ${panelClassName ?? ""}`
               : `menu-surface absolute right-0 top-full z-20 mt-1 overflow-hidden rounded-xl py-1 shadow-lg ${
                   panelClassName ?? "w-44"
                 }`

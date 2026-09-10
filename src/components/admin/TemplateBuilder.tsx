@@ -13,6 +13,7 @@ import {
   Paperclip,
   Plus,
   Type,
+  Upload,
 } from "lucide-react";
 import {
   BLOCK_TYPE_LABELS,
@@ -62,6 +63,14 @@ const ADD_BLOCK_OPTIONS: {
     description: "Кандидат отметит проблемы прямо на изображении",
   },
 ];
+
+// file_upload has no entry in ADD_BLOCK_OPTIONS (it's excluded from the "add
+// question" menu), but legacy blocks of that type can still exist, so the
+// question nav needs a fallback icon for it.
+const BLOCK_TYPE_ICONS: Record<BlockType, typeof Info> = {
+  ...Object.fromEntries(ADD_BLOCK_OPTIONS.map(({ type, icon }) => [type, icon])),
+  file_upload: Upload,
+} as Record<BlockType, typeof Info>;
 
 export type TemplateBuilderInitial = {
   id?: string;
@@ -249,25 +258,34 @@ export function TemplateBuilder({
       <h1 className="text-2xl font-semibold text-foreground">{title}</h1>
 
       <div className="flex items-start gap-8">
-        <div className="sticky top-8 z-20 flex max-h-[calc(100vh-4rem)] w-48 flex-shrink-0 flex-col gap-1 overflow-y-auto rounded-2xl border border-line bg-white p-2 shadow-lg">
+        <div className="sticky top-20 z-20 flex max-h-[calc(100vh-7rem)] w-48 flex-shrink-0 flex-col gap-1 overflow-y-auto rounded-2xl border border-line bg-white p-2 shadow-lg">
           <p className="px-2 py-1 text-[11px] font-medium uppercase tracking-wide text-slate-400">
             Вопросы
           </p>
           {blocks.length === 0 && (
             <p className="px-2 py-1 text-xs text-slate-400">Пока нет вопросов</p>
           )}
-          {blocks.map((block, index) => (
-            <button
-              key={block.id}
-              onClick={() => scrollToBlock(block.id)}
-              className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-left text-xs text-muted transition hover:bg-black/5 hover:text-foreground"
-            >
-              <span className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-slate-100 text-[10px] font-medium text-slate-600">
-                {index + 1}
-              </span>
-              <span className="truncate">{block.title || BLOCK_TYPE_LABELS[block.type]}</span>
-            </button>
-          ))}
+          {blocks.map((block) => {
+            const Icon = BLOCK_TYPE_ICONS[block.type];
+            return (
+              <button
+                key={block.id}
+                onClick={() => scrollToBlock(block.id)}
+                className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-left text-xs text-muted transition hover:bg-black/5 hover:text-foreground"
+              >
+                <span
+                  className={`flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-lg ${
+                    isDisplayOnlyBlock(block.type)
+                      ? "bg-accent2-soft text-accent2-strong"
+                      : "bg-accent-soft text-accent"
+                  }`}
+                >
+                  <Icon className="h-3.5 w-3.5" />
+                </span>
+                <span className="truncate">{block.title || BLOCK_TYPE_LABELS[block.type]}</span>
+              </button>
+            );
+          })}
         </div>
 
         <div className="min-w-0 flex-1 space-y-6">
@@ -322,7 +340,7 @@ export function TemplateBuilder({
           {error && <p className="text-sm text-red-600">{error}</p>}
         </div>
 
-        <div className="sticky top-8 z-20 flex w-52 flex-shrink-0 flex-col gap-2 rounded-2xl border border-line bg-white p-2 shadow-lg">
+        <div className="sticky top-20 z-20 flex w-52 flex-shrink-0 flex-col gap-2 rounded-2xl border border-line bg-white p-2 shadow-lg">
           <button
             onClick={handleSaveClick}
             disabled={saving}
