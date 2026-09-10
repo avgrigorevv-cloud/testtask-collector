@@ -261,7 +261,7 @@ export function TemplateBuilder({
         <button
           onClick={handleSaveClick}
           disabled={saving}
-          className="inline-flex w-full items-center justify-center gap-1.5 rounded-xl bg-accent-deep text-white px-3 py-2 text-sm font-medium shadow-sm transition hover:brightness-110 disabled:opacity-50"
+          className="inline-flex w-full items-center justify-center gap-1.5 rounded-xl bg-lime-200 text-lime-900 px-3 py-2 text-sm font-medium shadow-sm transition hover:bg-lime-700 hover:text-white active:bg-lime-700 active:text-white disabled:opacity-50"
         >
           {saving ? "Сохранение..." : "Сохранить"}
         </button>
