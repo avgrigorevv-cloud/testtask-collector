@@ -168,96 +168,98 @@ export function TemplateBuilder({
     : "";
 
   return (
-    <div className="max-w-2xl space-y-6">
+    <div className="flex items-start gap-8">
       {showSavedToast && (
         <div className="fixed top-4 right-4 z-30 flex items-center gap-2 rounded-xl border border-[#d7dfb0] bg-[#eef2d9] text-[#55611f] px-4 py-2.5 text-sm font-medium shadow-lg toast-in">
           <Check className="w-4 h-4" />
           Изменения сохранены
         </div>
       )}
-      <BackLink href={templatesHref} onClick={(e) => guardNav(e, templatesHref)}>
-        Шаблоны
-      </BackLink>
+      <div className="max-w-2xl flex-1 space-y-6">
+        <BackLink href={templatesHref} onClick={(e) => guardNav(e, templatesHref)}>
+          Шаблоны
+        </BackLink>
 
-      <h1 className="text-2xl font-semibold text-foreground">{title}</h1>
+        <h1 className="text-2xl font-semibold text-foreground">{title}</h1>
 
-      <div className="rounded-2xl border border-slate-200 bg-white p-5 space-y-3">
-        <input
-          value={name}
-          onChange={(e) => updateName(e.target.value)}
-          placeholder="Название шаблона, например «Backend-стажёр»"
-          className="w-full text-lg font-medium rounded-md border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-accent"
-        />
-        <div className="flex gap-3">
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 space-y-3">
           <input
-            value={roleLabel}
-            onChange={(e) => updateRoleLabel(e.target.value)}
-            placeholder="Роль, например «Стажёр-разработчик»"
-            className="flex-1 text-sm rounded-md border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-accent"
+            value={name}
+            onChange={(e) => updateName(e.target.value)}
+            placeholder="Название шаблона, например «Backend-стажёр»"
+            className="w-full text-lg font-medium rounded-md border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-accent"
           />
-          <input
-            value={estimatedDuration}
-            onChange={(e) => updateEstimatedDuration(e.target.value)}
-            placeholder="Срок выполнения, например «2–3 дня»"
-            className="w-56 text-sm rounded-md border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-accent"
+          <div className="flex gap-3">
+            <input
+              value={roleLabel}
+              onChange={(e) => updateRoleLabel(e.target.value)}
+              placeholder="Роль, например «Стажёр-разработчик»"
+              className="flex-1 text-sm rounded-md border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-accent"
+            />
+            <input
+              value={estimatedDuration}
+              onChange={(e) => updateEstimatedDuration(e.target.value)}
+              placeholder="Срок выполнения, например «2–3 дня»"
+              className="w-56 text-sm rounded-md border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-accent"
+            />
+          </div>
+          <textarea
+            value={description}
+            onChange={(e) => updateDescription(e.target.value)}
+            placeholder="Короткое описание задания для кандидата"
+            rows={2}
+            className="w-full text-sm rounded-md border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-accent"
           />
         </div>
-        <textarea
-          value={description}
-          onChange={(e) => updateDescription(e.target.value)}
-          placeholder="Короткое описание задания для кандидата"
-          rows={2}
-          className="w-full text-sm rounded-md border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-accent"
-        />
-      </div>
 
-      <div className="space-y-3">
-        {blocks.map((block, index) => (
-          <BlockEditorCard
-            key={block.id}
-            block={block}
-            onChange={(b) => updateBlock(index, b)}
-            onRemove={() => removeBlock(index)}
-            onMoveUp={() => moveBlock(index, -1)}
-            onMoveDown={() => moveBlock(index, 1)}
-            isFirst={index === 0}
-            isLast={index === blocks.length - 1}
-          />
-        ))}
-        {blocks.length === 0 && (
-          <p className="text-sm text-slate-400">Добавьте первый блок ниже.</p>
-        )}
-      </div>
-
-      <div className="rounded-2xl border border-dashed border-slate-300 p-4">
-        <p className="text-xs uppercase tracking-wide text-slate-400 mb-2">
-          Добавить блок
-        </p>
-        <div className="flex flex-wrap gap-2">
-          {DISPLAY_BLOCK_TYPES.map((type) => (
-            <button
-              key={type}
-              onClick={() => addBlock(type)}
-              className="rounded-lg bg-slate-100 hover:bg-slate-200 px-3 py-1.5 text-sm"
-            >
-              + {BLOCK_TYPE_LABELS[type]}
-            </button>
+        <div className="space-y-3">
+          {blocks.map((block, index) => (
+            <BlockEditorCard
+              key={block.id}
+              block={block}
+              onChange={(b) => updateBlock(index, b)}
+              onRemove={() => removeBlock(index)}
+              onMoveUp={() => moveBlock(index, -1)}
+              onMoveDown={() => moveBlock(index, 1)}
+              isFirst={index === 0}
+              isLast={index === blocks.length - 1}
+            />
           ))}
-          {INPUT_BLOCK_TYPES.filter((type) => type !== "file_upload").map((type) => (
-            <button
-              key={type}
-              onClick={() => addBlock(type)}
-              className="rounded-lg bg-slate-100 hover:bg-slate-200 px-3 py-1.5 text-sm"
-            >
-              + {BLOCK_TYPE_LABELS[type]}
-            </button>
-          ))}
+          {blocks.length === 0 && (
+            <p className="text-sm text-slate-400">Добавьте первый блок ниже.</p>
+          )}
         </div>
+
+        <div className="rounded-2xl border border-dashed border-slate-300 p-4">
+          <p className="text-xs uppercase tracking-wide text-slate-400 mb-2">
+            Добавить блок
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {DISPLAY_BLOCK_TYPES.map((type) => (
+              <button
+                key={type}
+                onClick={() => addBlock(type)}
+                className="rounded-lg bg-slate-100 hover:bg-slate-200 px-3 py-1.5 text-sm"
+              >
+                + {BLOCK_TYPE_LABELS[type]}
+              </button>
+            ))}
+            {INPUT_BLOCK_TYPES.filter((type) => type !== "file_upload").map((type) => (
+              <button
+                key={type}
+                onClick={() => addBlock(type)}
+                className="rounded-lg bg-slate-100 hover:bg-slate-200 px-3 py-1.5 text-sm"
+              >
+                + {BLOCK_TYPE_LABELS[type]}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {error && <p className="text-sm text-red-600">{error}</p>}
       </div>
 
-      {error && <p className="text-sm text-red-600">{error}</p>}
-
-      <div className="fixed right-6 top-36 z-20 flex w-44 flex-col gap-4 rounded-2xl border border-line bg-white p-2 shadow-lg">
+      <div className="sticky top-36 z-20 flex w-44 flex-shrink-0 flex-col gap-4 rounded-2xl border border-line bg-white p-2 shadow-lg">
         <button
           onClick={handleSaveClick}
           disabled={saving}

@@ -45,6 +45,20 @@ body {
   font-family: var(--font-sans), Arial, Helvetica, sans-serif;
 }
 
+/* subtle dot-grid texture — sits below the ambient glow, adds a bit of
+   life/depth beyond a flat gradient without being a decorative
+   illustration. Very low opacity, purely geometric. */
+.bg-pattern {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  width: 100%;
+  height: 100%;
+  opacity: 0.6;
+  color: var(--line);
+}
+
 /* ambient background glow — sits behind fully opaque content, never under
    translucent surfaces, so there's nothing for it to bleed through.
    Deliberately no `overflow: hidden` here: clipping a blurred child at a
