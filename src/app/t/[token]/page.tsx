@@ -38,9 +38,9 @@ export default async function CandidatePage({ params }: Params) {
 
   if (submission.status !== "submitted" && isSubmissionExpired(submission.expiresAt)) {
     return (
-      <div className="min-h-screen bg-slate-50 max-w-2xl mx-auto px-4 py-24 text-center">
-        <h1 className="text-2xl font-semibold text-slate-900">Ссылка истекла</h1>
-        <p className="text-slate-500 mt-2">
+      <div className="min-h-screen bg-background max-w-2xl mx-auto px-4 py-24 text-center">
+        <h1 className="text-2xl font-semibold text-foreground">Ссылка истекла</h1>
+        <p className="text-muted mt-2">
           Срок действия этой ссылки на задание «{submission.template.name}» закончился.
           Свяжитесь с тем, кто её отправил, чтобы получить новую.
         </p>

@@ -147,20 +147,22 @@ export function CandidateFlow({
 
   if (status === "submitted") {
     return (
-      <div className="min-h-screen bg-slate-50 max-w-2xl mx-auto px-4 py-24 text-center">
-        <h1 className="text-2xl font-semibold text-slate-900">Спасибо!</h1>
-        <p className="text-slate-500 mt-2">
-          Ваш ответ по заданию «{templateName}» отправлен. Мы свяжемся с вами по итогам
-          проверки.
-        </p>
+      <div className="min-h-screen bg-background">
+        <div className="max-w-2xl mx-auto px-4 py-24 text-center">
+          <h1 className="text-2xl font-semibold text-foreground">Спасибо!</h1>
+          <p className="text-muted mt-2">
+            Ваш ответ по заданию «{templateName}» отправлен. Мы свяжемся с вами по итогам
+            проверки.
+          </p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-background">
       {preview && (
-        <div className="sticky top-0 z-10 bg-amber-400 text-amber-950 text-sm text-center py-2 font-medium">
+        <div className="sticky top-0 z-10 bg-accent2 text-on-accent2 text-sm text-center py-2 font-medium">
           Предпросмотр — вы видите то, что увидит кандидат. Ответы не сохраняются.
         </div>
       )}
@@ -169,14 +171,14 @@ export function CandidateFlow({
           <div className="flex items-center justify-between gap-3">
             <p className="text-xs uppercase tracking-wide text-slate-400">{roleLabel}</p>
             {estimatedDuration && (
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600 whitespace-nowrap">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-accent-soft px-2.5 py-1 text-xs font-medium text-accent-strong whitespace-nowrap">
                 <Clock className="w-3.5 h-3.5" />
                 {estimatedDuration}
               </span>
             )}
           </div>
-          <h1 className="text-2xl font-semibold text-slate-900 mt-1">{templateName}</h1>
-          {description && <p className="text-slate-500 mt-2">{description}</p>}
+          <h1 className="text-2xl font-semibold text-foreground mt-1">{templateName}</h1>
+          {description && <p className="text-muted mt-2">{description}</p>}
         </div>
 
         <div className="space-y-5">
@@ -184,11 +186,11 @@ export function CandidateFlow({
             <div
               id={`block-${block.id}`}
               key={block.id}
-              className={`rounded-xl border bg-white p-5 ${
+              className={`rounded-2xl border bg-surface p-5 ${
                 missing.has(block.id) ? "border-red-400" : "border-slate-200"
               }`}
             >
-              <p className="font-medium text-slate-900">
+              <p className="font-medium text-foreground">
                 {block.title || "Без названия"}
                 {block.required && !isDisplayOnlyBlock(block.type) && (
                   <span className="text-red-500"> *</span>
@@ -220,7 +222,7 @@ export function CandidateFlow({
                   value={(answers[block.id] as LinkAnswerValue | undefined)?.url ?? ""}
                   onChange={(e) => setAnswer(block.id, "link", { url: e.target.value })}
                   placeholder={block.config.placeholder}
-                  className="w-full mt-2 text-sm rounded-md border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-slate-900"
+                  className="w-full mt-2 text-sm rounded-md border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-accent"
                 />
               )}
 
@@ -233,7 +235,7 @@ export function CandidateFlow({
                     }
                     placeholder={block.config.placeholder}
                     rows={4}
-                    className="w-full mt-2 text-sm rounded-md border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-slate-900"
+                    className="w-full mt-2 text-sm rounded-md border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-accent"
                   />
                 ) : (
                   <input
@@ -242,7 +244,7 @@ export function CandidateFlow({
                       setAnswer(block.id, "text", { text: e.target.value })
                     }
                     placeholder={block.config.placeholder}
-                    className="w-full mt-2 text-sm rounded-md border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-slate-900"
+                    className="w-full mt-2 text-sm rounded-md border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-accent"
                   />
                 ))}
 
@@ -301,7 +303,7 @@ export function CandidateFlow({
           onClick={handleSubmit}
           disabled={submitting || preview}
           title={preview ? "В режиме предпросмотра отправка отключена" : undefined}
-          className="w-full rounded-lg bg-slate-900 text-white py-3 text-sm font-medium hover:bg-slate-800 disabled:opacity-50"
+          className="w-full rounded-xl bg-gradient-to-br from-accent to-accent-deep text-white py-3 text-sm font-semibold shadow-md shadow-accent/25 transition hover:brightness-110 disabled:opacity-50 disabled:shadow-none"
         >
           {preview ? "Отправить задание (недоступно в предпросмотре)" : submitting ? "Отправка..." : "Отправить задание"}
         </button>

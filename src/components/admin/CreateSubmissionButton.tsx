@@ -20,7 +20,7 @@ export function CreateSubmissionButton({ templateId }: { templateId: string }) {
     <button
       onClick={handleCreate}
       disabled={creating}
-      className="rounded-lg bg-slate-900 text-white px-4 py-2 text-sm font-medium hover:bg-slate-800 disabled:opacity-50 whitespace-nowrap"
+      className="rounded-xl bg-gradient-to-br from-accent to-accent-deep text-white px-4 py-2 text-sm font-medium shadow-sm transition hover:brightness-110 disabled:opacity-50 whitespace-nowrap"
     >
       {creating ? "Создание..." : "+ Новая ссылка"}
     </button>
