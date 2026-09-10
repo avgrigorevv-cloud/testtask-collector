@@ -3,17 +3,59 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowRight, Check, Eye } from "lucide-react";
 import {
-  BLOCK_TYPE_LABELS,
-  DISPLAY_BLOCK_TYPES,
-  INPUT_BLOCK_TYPES,
-  newBlock,
-  type Block,
-  type BlockType,
-} from "@/lib/blocks";
+  ArrowRight,
+  Check,
+  Eye,
+  Image as ImageIcon,
+  Info,
+  Link2,
+  Paperclip,
+  Plus,
+  Type,
+} from "lucide-react";
+import { isDisplayOnlyBlock, newBlock, type Block, type BlockType } from "@/lib/blocks";
 import { BlockEditorCard } from "@/components/admin/BlockEditorCard";
 import { BackLink } from "@/components/admin/BackLink";
+import { DropdownMenu } from "@/components/admin/DropdownMenu";
+
+const ADD_BLOCK_OPTIONS: {
+  type: BlockType;
+  icon: typeof Info;
+  title: string;
+  description: string;
+}[] = [
+  {
+    type: "info",
+    icon: Info,
+    title: "Информация",
+    description: "Покажите вводный текст без вопроса",
+  },
+  {
+    type: "attachment",
+    icon: Paperclip,
+    title: "Файл-инструкция",
+    description: "Прикрепите файл с описанием задания",
+  },
+  {
+    type: "text",
+    icon: Type,
+    title: "Текстовый ответ",
+    description: "Кандидат впишет свободный текст",
+  },
+  {
+    type: "link",
+    icon: Link2,
+    title: "Ссылка",
+    description: "Кандидат оставит ссылку, например на портфолио",
+  },
+  {
+    type: "image_annotate",
+    icon: ImageIcon,
+    title: "Разметка скриншотов",
+    description: "Кандидат отметит проблемы прямо на изображении",
+  },
+];
 
 export type TemplateBuilderInitial = {
   id?: string;
@@ -263,27 +305,40 @@ export function TemplateBuilder({
         )}
 
         <div className="my-1 border-t border-line" />
-        <p className="px-1 text-[11px] font-medium uppercase tracking-wide text-slate-400">
-          Добавить блок
-        </p>
-        {DISPLAY_BLOCK_TYPES.map((type) => (
-          <button
-            key={type}
-            onClick={() => addBlock(type)}
-            className="w-full rounded-lg bg-slate-100 px-2.5 py-1.5 text-left text-xs leading-snug transition hover:bg-slate-200"
-          >
-            + {BLOCK_TYPE_LABELS[type]}
-          </button>
-        ))}
-        {INPUT_BLOCK_TYPES.filter((type) => type !== "file_upload").map((type) => (
-          <button
-            key={type}
-            onClick={() => addBlock(type)}
-            className="w-full rounded-lg bg-slate-100 px-2.5 py-1.5 text-left text-xs leading-snug transition hover:bg-slate-200"
-          >
-            + {BLOCK_TYPE_LABELS[type]}
-          </button>
-        ))}
+
+        <DropdownMenu
+          trigger={
+            <>
+              <Plus className="w-4 h-4" />
+              Добавить вопрос
+            </>
+          }
+          triggerClassName="inline-flex w-full items-center justify-center gap-1.5 rounded-xl bg-slate-100 px-3 py-2 text-sm font-medium text-foreground transition hover:bg-slate-200"
+          panelClassName="w-80"
+          ariaLabel="Добавить вопрос"
+        >
+          {ADD_BLOCK_OPTIONS.map(({ type, icon: Icon, title, description }) => (
+            <button
+              key={type}
+              onClick={() => addBlock(type)}
+              className="flex w-full items-start gap-3 px-3 py-2.5 text-left transition hover:bg-black/5"
+            >
+              <span
+                className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg ${
+                  isDisplayOnlyBlock(type)
+                    ? "bg-accent2-soft text-accent2-strong"
+                    : "bg-accent-soft text-accent"
+                }`}
+              >
+                <Icon className="h-4 w-4" />
+              </span>
+              <span>
+                <span className="block text-sm font-medium text-foreground">{title}</span>
+                <span className="mt-0.5 block text-xs text-muted">{description}</span>
+              </span>
+            </button>
+          ))}
+        </DropdownMenu>
       </div>
     </div>
   );

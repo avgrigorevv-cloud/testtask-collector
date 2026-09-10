@@ -3,7 +3,19 @@
 import { useEffect, useRef, useState } from "react";
 import { MoreHorizontal } from "lucide-react";
 
-export function DropdownMenu({ children }: { children: React.ReactNode }) {
+export function DropdownMenu({
+  trigger,
+  triggerClassName,
+  panelClassName,
+  ariaLabel = "Дополнительные действия",
+  children,
+}: {
+  trigger?: React.ReactNode;
+  triggerClassName?: string;
+  panelClassName?: string;
+  ariaLabel?: string;
+  children: React.ReactNode;
+}) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -30,20 +42,25 @@ export function DropdownMenu({ children }: { children: React.ReactNode }) {
         type="button"
         aria-haspopup="menu"
         aria-expanded={open}
-        aria-label="Дополнительные действия"
+        aria-label={ariaLabel}
         onClick={(e) => {
           e.preventDefault();
           setOpen((v) => !v);
         }}
-        className="flex h-8 w-8 items-center justify-center rounded-lg text-muted transition hover:bg-black/5 hover:text-foreground"
+        className={
+          triggerClassName ??
+          "flex h-8 w-8 items-center justify-center rounded-lg text-muted transition hover:bg-black/5 hover:text-foreground"
+        }
       >
-        <MoreHorizontal className="h-4 w-4" />
+        {trigger ?? <MoreHorizontal className="h-4 w-4" />}
       </button>
       {open && (
         <div
           role="menu"
           onClick={() => setOpen(false)}
-          className="menu-surface absolute right-0 top-full z-20 mt-1 w-44 overflow-hidden rounded-xl py-1 shadow-lg"
+          className={`menu-surface absolute right-0 top-full z-20 mt-1 overflow-hidden rounded-xl py-1 shadow-lg ${
+            panelClassName ?? "w-44"
+          }`}
         >
           {children}
         </div>
