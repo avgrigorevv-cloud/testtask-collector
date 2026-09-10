@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import type { Block, ImageAnnotateAnswerValue } from "@/lib/blocks";
 import { ImageAnnotate } from "@/components/shared/ImageAnnotate";
 import { BackLink } from "@/components/admin/BackLink";
+import { StatusBadge } from "@/components/admin/StatusBadge";
 import { isSafeExternalUrl } from "@/lib/url";
 
 export const dynamic = "force-dynamic";
@@ -31,18 +32,10 @@ export default async function SubmissionDetailPage({
           {submission.template.name}
         </BackLink>
         <div className="flex items-center justify-between mt-3">
-          <h1 className="text-2xl font-semibold text-slate-900">
+          <h1 className="text-2xl font-semibold text-foreground">
             Прохождение #{submission.id.slice(-6)}
           </h1>
-          <span
-            className={`text-xs font-medium px-2.5 py-1 rounded-full ${
-              submission.status === "submitted"
-                ? "bg-green-100 text-green-700"
-                : "bg-amber-100 text-amber-700"
-            }`}
-          >
-            {submission.status === "submitted" ? "Ответ получен" : "В работе"}
-          </span>
+          <StatusBadge status={submission.status} />
         </div>
         {submission.submittedAt && (
           <p className="text-xs text-slate-400 mt-1">
@@ -53,7 +46,7 @@ export default async function SubmissionDetailPage({
 
       <div className="space-y-4">
         {blocks.map((block) => (
-          <div key={block.id} className="rounded-xl border border-slate-200 bg-white p-5">
+          <div key={block.id} className="rounded-2xl border border-slate-200 bg-white p-5">
             <p className="text-xs uppercase tracking-wide text-slate-400 mb-1">
               {block.title || "Без названия"}
             </p>

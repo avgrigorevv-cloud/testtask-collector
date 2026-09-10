@@ -33,14 +33,14 @@ function LoginForm() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 px-4">
+    <div className="min-h-screen flex items-center justify-center bg-background px-4">
       <form
         onSubmit={handleSubmit}
-        className="w-full max-w-sm bg-white rounded-xl shadow-sm border border-slate-200 p-8 space-y-5"
+        className="w-full max-w-sm bg-surface border border-slate-200 rounded-2xl shadow-sm p-8 space-y-5"
       >
         <div>
-          <h1 className="text-xl font-semibold text-slate-900">Вход в админку</h1>
-          <p className="text-sm text-slate-500 mt-1">
+          <h1 className="text-xl font-semibold text-foreground">Вход в Admin panel</h1>
+          <p className="text-sm text-muted mt-1">
             Конструктор тестовых заданий
           </p>
         </div>
@@ -54,7 +54,7 @@ function LoginForm() {
               autoFocus
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full rounded-lg border border-slate-300 px-3 py-2 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900"
+              className="w-full rounded-lg border border-slate-300 px-3 py-2 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
             />
             <button
               type="button"
@@ -70,7 +70,7 @@ function LoginForm() {
         <button
           type="submit"
           disabled={loading}
-          className="w-full rounded-lg bg-slate-900 text-white py-2 text-sm font-medium hover:bg-slate-800 disabled:opacity-50"
+          className="w-full rounded-xl bg-gradient-to-br from-accent to-accent-deep text-white py-2 text-sm font-medium shadow-sm transition hover:brightness-110 disabled:opacity-50"
         >
           {loading ? "Проверка..." : "Войти"}
         </button>

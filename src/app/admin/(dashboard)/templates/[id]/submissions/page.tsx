@@ -5,14 +5,9 @@ import { CreateSubmissionButton } from "@/components/admin/CreateSubmissionButto
 import { CopyLinkButton } from "@/components/admin/CopyLinkButton";
 import { DeleteSubmissionButton } from "@/components/admin/DeleteSubmissionButton";
 import { BackLink } from "@/components/admin/BackLink";
+import { StatusBadge } from "@/components/admin/StatusBadge";
 
 export const dynamic = "force-dynamic";
-
-const STATUS_LABELS: Record<string, string> = {
-  pending: "В работе",
-  opened: "Открыто кандидатом",
-  submitted: "Ответ получен",
-};
 
 export default async function TemplateSubmissionsPage({
   params,
@@ -32,10 +27,10 @@ export default async function TemplateSubmissionsPage({
     <div className="space-y-6">
       <div>
         <BackLink href={`/admin/templates/${id}`}>{template.name}</BackLink>
-        <h1 className="text-2xl font-semibold text-slate-900 mt-3">Прохождения</h1>
+        <h1 className="text-2xl font-semibold text-foreground mt-3">Прохождения</h1>
       </div>
 
-      <div className="rounded-xl border border-slate-200 bg-white p-4">
+      <div className="rounded-2xl border border-slate-200 bg-white p-4">
         <CreateSubmissionButton templateId={id} />
       </div>
 
@@ -47,22 +42,14 @@ export default async function TemplateSubmissionsPage({
         {submissions.map((s) => (
           <div
             key={s.id}
-            className="flex items-center justify-between rounded-xl border border-slate-200 bg-white p-4"
+            className="flex items-center justify-between rounded-2xl border border-slate-200 bg-white p-4 transition hover:shadow-md hover:-translate-y-0.5"
           >
             <div>
               <div className="flex items-center gap-2">
-                <p className="font-medium text-slate-900">
+                <p className="font-medium text-foreground">
                   Прохождение #{s.id.slice(-6)}
                 </p>
-                <span
-                  className={`text-xs font-medium px-2 py-0.5 rounded-full ${
-                    s.status === "submitted"
-                      ? "bg-green-100 text-green-700"
-                      : "bg-amber-100 text-amber-700"
-                  }`}
-                >
-                  {STATUS_LABELS[s.status] ?? s.status}
-                </span>
+                <StatusBadge status={s.status} />
               </div>
               <p className="text-xs text-slate-400 mt-0.5">
                 создано {new Date(s.createdAt).toLocaleDateString("ru-RU")}
@@ -71,7 +58,7 @@ export default async function TemplateSubmissionsPage({
             <div className="flex items-center gap-2">
               <Link
                 href={`/admin/submissions/${s.id}`}
-                className="rounded-md bg-slate-900 text-white px-3 py-1.5 text-xs font-medium hover:bg-slate-800"
+                className="rounded-lg bg-gradient-to-br from-accent to-accent-deep text-white px-3 py-1.5 text-xs font-medium hover:brightness-110 transition"
               >
                 Смотреть ответ
               </Link>

@@ -100,7 +100,7 @@ export function ImageAnnotate({
                           onChange={(e) => updateComment(p.idx, e.target.value)}
                           placeholder="Что не так в этом месте?"
                           rows={2}
-                          className="flex-1 text-sm rounded-md border border-slate-300 px-2 py-1 focus:outline-none focus:ring-2 focus:ring-slate-900"
+                          className="flex-1 text-sm rounded-md border border-slate-300 px-2 py-1 focus:outline-none focus:ring-2 focus:ring-accent"
                         />
                         <button
                           onClick={() => removePin(p.idx)}

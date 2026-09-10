@@ -3,7 +3,7 @@
 import { useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowRight, Eye } from "lucide-react";
+import { ArrowRight, Check, Eye } from "lucide-react";
 import {
   BLOCK_TYPE_LABELS,
   DISPLAY_BLOCK_TYPES,
@@ -162,49 +162,27 @@ export function TemplateBuilder({
         Шаблоны
       </BackLink>
 
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold text-slate-900">{title}</h1>
-        {initial.id && (
-          <div className="flex items-center gap-2">
-            <Link
-              href={previewHref}
-              onClick={(e) => guardNav(e, previewHref)}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-slate-100 text-slate-700 px-4 py-2 text-sm font-medium hover:bg-slate-200"
-            >
-              <Eye className="w-4 h-4" />
-              Предпросмотр
-            </Link>
-            <Link
-              href={submissionsHref}
-              onClick={(e) => guardNav(e, submissionsHref)}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-slate-900 text-white px-4 py-2 text-sm font-medium hover:bg-slate-800"
-            >
-              Прохождения
-              <ArrowRight className="w-4 h-4" />
-            </Link>
-          </div>
-        )}
-      </div>
+      <h1 className="text-2xl font-semibold text-foreground">{title}</h1>
 
-      <div className="rounded-xl border border-slate-200 bg-white p-5 space-y-3">
+      <div className="rounded-2xl border border-slate-200 bg-white p-5 space-y-3">
         <input
           value={name}
           onChange={(e) => updateName(e.target.value)}
           placeholder="Название шаблона, например «Backend-стажёр»"
-          className="w-full text-lg font-medium rounded-md border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-slate-900"
+          className="w-full text-lg font-medium rounded-md border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-accent"
         />
         <div className="flex gap-3">
           <input
             value={roleLabel}
             onChange={(e) => updateRoleLabel(e.target.value)}
             placeholder="Роль, например «Стажёр-разработчик»"
-            className="flex-1 text-sm rounded-md border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-slate-900"
+            className="flex-1 text-sm rounded-md border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-accent"
           />
           <input
             value={estimatedDuration}
             onChange={(e) => updateEstimatedDuration(e.target.value)}
             placeholder="Срок выполнения, например «2–3 дня»"
-            className="w-56 text-sm rounded-md border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-slate-900"
+            className="w-56 text-sm rounded-md border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-accent"
           />
         </div>
         <textarea
@@ -212,7 +190,7 @@ export function TemplateBuilder({
           onChange={(e) => updateDescription(e.target.value)}
           placeholder="Короткое описание задания для кандидата"
           rows={2}
-          className="w-full text-sm rounded-md border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-slate-900"
+          className="w-full text-sm rounded-md border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-accent"
         />
       </div>
 
@@ -234,7 +212,7 @@ export function TemplateBuilder({
         )}
       </div>
 
-      <div className="rounded-xl border border-dashed border-slate-300 p-4">
+      <div className="rounded-2xl border border-dashed border-slate-300 p-4">
         <p className="text-xs uppercase tracking-wide text-slate-400 mb-2">
           Добавить блок
         </p>
@@ -262,13 +240,40 @@ export function TemplateBuilder({
 
       {error && <p className="text-sm text-red-600">{error}</p>}
 
-      <button
-        onClick={handleSaveClick}
-        disabled={saving}
-        className="rounded-lg bg-slate-900 text-white px-5 py-2.5 text-sm font-medium hover:bg-slate-800 disabled:opacity-50"
-      >
-        {saving ? "Сохранение..." : dirty ? "Сохранить изменения" : "Сохранено"}
-      </button>
+      <div className="flex w-full flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-2 shadow-sm xl:fixed xl:right-6 xl:top-36 xl:z-20 xl:w-44 xl:gap-4 xl:shadow-lg">
+        <button
+          onClick={handleSaveClick}
+          disabled={saving}
+          className={`inline-flex w-full items-center justify-center gap-1.5 rounded-xl px-3 py-2 text-sm font-medium shadow-sm transition disabled:opacity-50 ${
+            !saving && !dirty
+              ? "bg-emerald-600 text-white hover:bg-emerald-700"
+              : "bg-gradient-to-br from-accent to-accent-deep text-white hover:brightness-110"
+          }`}
+        >
+          {!saving && !dirty && <Check className="w-4 h-4 icon-pop" />}
+          {saving ? "Сохранение..." : dirty ? "Сохранить" : "Сохранено"}
+        </button>
+        {initial.id && (
+          <>
+            <Link
+              href={previewHref}
+              onClick={(e) => guardNav(e, previewHref)}
+              className="inline-flex w-full items-center justify-center gap-1.5 rounded-xl bg-accent2-soft text-accent2-strong px-3 py-2 text-sm font-medium transition hover:bg-accent2 hover:text-white"
+            >
+              <Eye className="w-4 h-4" />
+              Предпросмотр
+            </Link>
+            <Link
+              href={submissionsHref}
+              onClick={(e) => guardNav(e, submissionsHref)}
+              className="inline-flex w-full items-center justify-center gap-1.5 rounded-xl bg-gradient-to-br from-accent to-accent-deep text-white px-3 py-2 text-sm font-medium shadow-sm transition hover:brightness-110"
+            >
+              Прохождения
+              <ArrowRight className="w-4 h-4" />
+            </Link>
+          </>
+        )}
+      </div>
     </div>
   );
 }
