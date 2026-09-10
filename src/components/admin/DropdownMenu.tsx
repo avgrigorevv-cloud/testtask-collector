@@ -8,19 +8,27 @@ export function DropdownMenu({
   triggerClassName,
   panelClassName,
   ariaLabel = "Дополнительные действия",
+  inline = false,
+  closeOnItemClick = true,
   children,
 }: {
   trigger?: React.ReactNode;
   triggerClassName?: string;
   panelClassName?: string;
   ariaLabel?: string;
+  /** Render the panel in normal flow below the trigger (pushing content down)
+   * instead of as an absolutely-positioned overlay. Use this when the
+   * trigger's own container has nothing beside it that an overlay would
+   * cover, and overlaying other content instead would be the problem. */
+  inline?: boolean;
+  closeOnItemClick?: boolean;
   children: React.ReactNode;
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!open) return;
+    if (!open || inline) return;
 
     function onDocClick(e: MouseEvent) {
       if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
@@ -34,10 +42,10 @@ export function DropdownMenu({
       document.removeEventListener("mousedown", onDocClick);
       document.removeEventListener("keydown", onKey);
     };
-  }, [open]);
+  }, [open, inline]);
 
   return (
-    <div ref={ref} className="relative">
+    <div ref={ref} className={inline ? undefined : "relative"}>
       <button
         type="button"
         aria-haspopup="menu"
@@ -57,10 +65,14 @@ export function DropdownMenu({
       {open && (
         <div
           role="menu"
-          onClick={() => setOpen(false)}
-          className={`menu-surface absolute right-0 top-full z-20 mt-1 overflow-hidden rounded-xl py-1 shadow-lg ${
-            panelClassName ?? "w-44"
-          }`}
+          onClick={closeOnItemClick ? () => setOpen(false) : undefined}
+          className={
+            inline
+              ? `mt-2 overflow-hidden rounded-xl border border-line ${panelClassName ?? ""}`
+              : `menu-surface absolute right-0 top-full z-20 mt-1 overflow-hidden rounded-xl py-1 shadow-lg ${
+                  panelClassName ?? "w-44"
+                }`
+          }
         >
           {children}
         </div>

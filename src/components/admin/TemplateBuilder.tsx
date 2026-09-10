@@ -14,7 +14,13 @@ import {
   Plus,
   Type,
 } from "lucide-react";
-import { isDisplayOnlyBlock, newBlock, type Block, type BlockType } from "@/lib/blocks";
+import {
+  BLOCK_TYPE_LABELS,
+  isDisplayOnlyBlock,
+  newBlock,
+  type Block,
+  type BlockType,
+} from "@/lib/blocks";
 import { BlockEditorCard } from "@/components/admin/BlockEditorCard";
 import { BackLink } from "@/components/admin/BackLink";
 import { DropdownMenu } from "@/components/admin/DropdownMenu";
@@ -85,10 +91,27 @@ export function TemplateBuilder({
   const [showSavedToast, setShowSavedToast] = useState(false);
   const savedIdRef = useRef<string | undefined>(initial.id);
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const pendingScrollIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     return () => clearTimeout(toastTimerRef.current);
   }, []);
+
+  function scrollToBlock(id: string) {
+    document.getElementById(`editor-block-${id}`)?.scrollIntoView({
+      behavior: "smooth",
+      block: "center",
+    });
+  }
+
+  // Scrolls to a block added via addBlock() once its card has actually
+  // mounted. A ref (not state) holds the pending id so this effect never
+  // needs to call setState itself.
+  useEffect(() => {
+    if (!pendingScrollIdRef.current) return;
+    scrollToBlock(pendingScrollIdRef.current);
+    pendingScrollIdRef.current = null;
+  }, [blocks]);
 
   function updateName(value: string) {
     setName(value);
@@ -132,8 +155,10 @@ export function TemplateBuilder({
   }
 
   function addBlock(type: BlockType) {
-    setBlocks((prev) => [...prev, newBlock(type)]);
+    const block = newBlock(type);
+    setBlocks((prev) => [...prev, block]);
     setDirty(true);
+    pendingScrollIdRef.current = block.id;
   }
 
   async function saveTemplate(): Promise<boolean> {
@@ -210,135 +235,159 @@ export function TemplateBuilder({
     : "";
 
   return (
-    <div className="flex items-start gap-8">
+    <div className="space-y-6">
       {showSavedToast && (
         <div className="fixed top-4 right-4 z-30 flex items-center gap-2 rounded-xl border border-[#d7dfb0] bg-[#eef2d9] text-[#55611f] px-4 py-2.5 text-sm font-medium shadow-lg toast-in">
           <Check className="w-4 h-4" />
           Изменения сохранены
         </div>
       )}
-      <div className="min-w-0 flex-1 space-y-6">
-        <BackLink href={templatesHref} onClick={(e) => guardNav(e, templatesHref)}>
-          Шаблоны
-        </BackLink>
+      <BackLink href={templatesHref} onClick={(e) => guardNav(e, templatesHref)}>
+        Шаблоны
+      </BackLink>
 
-        <h1 className="text-2xl font-semibold text-foreground">{title}</h1>
+      <h1 className="text-2xl font-semibold text-foreground">{title}</h1>
 
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 space-y-3">
-          <input
-            value={name}
-            onChange={(e) => updateName(e.target.value)}
-            placeholder="Название шаблона, например «Backend-стажёр»"
-            className="w-full text-lg font-medium rounded-md border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-accent"
-          />
-          <div className="flex gap-3">
-            <input
-              value={roleLabel}
-              onChange={(e) => updateRoleLabel(e.target.value)}
-              placeholder="Роль, например «Стажёр-разработчик»"
-              className="flex-1 text-sm rounded-md border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-accent"
-            />
-            <input
-              value={estimatedDuration}
-              onChange={(e) => updateEstimatedDuration(e.target.value)}
-              placeholder="Срок выполнения, например «2–3 дня»"
-              className="w-56 text-sm rounded-md border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-accent"
-            />
-          </div>
-          <textarea
-            value={description}
-            onChange={(e) => updateDescription(e.target.value)}
-            placeholder="Короткое описание задания для кандидата"
-            rows={2}
-            className="w-full text-sm rounded-md border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-accent"
-          />
-        </div>
-
-        <div className="space-y-3">
-          {blocks.map((block, index) => (
-            <BlockEditorCard
-              key={block.id}
-              block={block}
-              onChange={(b) => updateBlock(index, b)}
-              onRemove={() => removeBlock(index)}
-              onMoveUp={() => moveBlock(index, -1)}
-              onMoveDown={() => moveBlock(index, 1)}
-              isFirst={index === 0}
-              isLast={index === blocks.length - 1}
-            />
-          ))}
+      <div className="flex items-start gap-8">
+        <div className="sticky top-8 z-20 flex max-h-[calc(100vh-4rem)] w-48 flex-shrink-0 flex-col gap-1 overflow-y-auto rounded-2xl border border-line bg-white p-2 shadow-lg">
+          <p className="px-2 py-1 text-[11px] font-medium uppercase tracking-wide text-slate-400">
+            Вопросы
+          </p>
           {blocks.length === 0 && (
-            <p className="text-sm text-slate-400">Добавьте первый блок ниже.</p>
+            <p className="px-2 py-1 text-xs text-slate-400">Пока нет вопросов</p>
           )}
-        </div>
-
-        {error && <p className="text-sm text-red-600">{error}</p>}
-      </div>
-
-      <div className="sticky top-36 z-20 flex w-52 flex-shrink-0 flex-col gap-2 rounded-2xl border border-line bg-white p-2 shadow-lg">
-        <button
-          onClick={handleSaveClick}
-          disabled={saving}
-          className="inline-flex w-full items-center justify-center gap-1.5 rounded-xl bg-emerald-50 text-emerald-700 px-3 py-2 text-sm font-medium shadow-sm transition hover:bg-emerald-700 hover:text-white active:bg-emerald-700 active:text-white disabled:opacity-50"
-        >
-          {saving ? "Сохранение..." : "Сохранить"}
-        </button>
-        {initial.id && (
-          <>
-            <Link
-              href={previewHref}
-              onClick={(e) => guardNav(e, previewHref)}
-              className="inline-flex w-full items-center justify-center gap-1.5 rounded-xl bg-accent2-soft text-accent2-strong px-3 py-2 text-sm font-medium transition hover:bg-amber-100"
-            >
-              <Eye className="w-4 h-4" />
-              Предпросмотр
-            </Link>
-            <Link
-              href={submissionsHref}
-              onClick={(e) => guardNav(e, submissionsHref)}
-              className="inline-flex w-full items-center justify-center gap-1.5 rounded-xl bg-gradient-to-br from-accent to-accent-deep text-white px-3 py-2 text-sm font-medium shadow-sm transition hover:brightness-110"
-            >
-              Прохождения
-              <ArrowRight className="w-4 h-4" />
-            </Link>
-          </>
-        )}
-
-        <div className="my-1 border-t border-line" />
-
-        <DropdownMenu
-          trigger={
-            <>
-              <Plus className="w-4 h-4" />
-              Добавить вопрос
-            </>
-          }
-          triggerClassName="inline-flex w-full items-center justify-center gap-1.5 rounded-xl bg-slate-100 px-3 py-2 text-sm font-medium text-foreground transition hover:bg-slate-200"
-          panelClassName="w-80"
-          ariaLabel="Добавить вопрос"
-        >
-          {ADD_BLOCK_OPTIONS.map(({ type, icon: Icon, title, description }) => (
+          {blocks.map((block, index) => (
             <button
-              key={type}
-              onClick={() => addBlock(type)}
-              className="flex w-full items-start gap-3 px-3 py-2.5 text-left transition hover:bg-black/5"
+              key={block.id}
+              onClick={() => scrollToBlock(block.id)}
+              className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-left text-xs text-muted transition hover:bg-black/5 hover:text-foreground"
             >
-              <span
-                className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg ${
-                  isDisplayOnlyBlock(type)
-                    ? "bg-accent2-soft text-accent2-strong"
-                    : "bg-accent-soft text-accent"
-                }`}
-              >
-                <Icon className="h-4 w-4" />
+              <span className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-slate-100 text-[10px] font-medium text-slate-600">
+                {index + 1}
               </span>
-              <span>
-                <span className="block text-sm font-medium text-foreground">{title}</span>
-                <span className="mt-0.5 block text-xs text-muted">{description}</span>
-              </span>
+              <span className="truncate">{block.title || BLOCK_TYPE_LABELS[block.type]}</span>
             </button>
           ))}
-        </DropdownMenu>
+        </div>
+
+        <div className="min-w-0 flex-1 space-y-6">
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 space-y-3">
+            <input
+              value={name}
+              onChange={(e) => updateName(e.target.value)}
+              placeholder="Название шаблона, например «Backend-стажёр»"
+              className="w-full text-lg font-medium rounded-md border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-accent"
+            />
+            <div className="flex gap-3">
+              <input
+                value={roleLabel}
+                onChange={(e) => updateRoleLabel(e.target.value)}
+                placeholder="Роль, например «Стажёр-разработчик»"
+                className="flex-1 text-sm rounded-md border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-accent"
+              />
+              <input
+                value={estimatedDuration}
+                onChange={(e) => updateEstimatedDuration(e.target.value)}
+                placeholder="Срок выполнения, например «2–3 дня»"
+                className="w-56 text-sm rounded-md border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-accent"
+              />
+            </div>
+            <textarea
+              value={description}
+              onChange={(e) => updateDescription(e.target.value)}
+              placeholder="Короткое описание задания для кандидата"
+              rows={2}
+              className="w-full text-sm rounded-md border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-accent"
+            />
+          </div>
+
+          <div className="space-y-3">
+            {blocks.map((block, index) => (
+              <BlockEditorCard
+                key={block.id}
+                block={block}
+                onChange={(b) => updateBlock(index, b)}
+                onRemove={() => removeBlock(index)}
+                onMoveUp={() => moveBlock(index, -1)}
+                onMoveDown={() => moveBlock(index, 1)}
+                isFirst={index === 0}
+                isLast={index === blocks.length - 1}
+              />
+            ))}
+            {blocks.length === 0 && (
+              <p className="text-sm text-slate-400">Добавьте первый блок ниже.</p>
+            )}
+          </div>
+
+          {error && <p className="text-sm text-red-600">{error}</p>}
+        </div>
+
+        <div className="sticky top-8 z-20 flex w-52 flex-shrink-0 flex-col gap-2 rounded-2xl border border-line bg-white p-2 shadow-lg">
+          <button
+            onClick={handleSaveClick}
+            disabled={saving}
+            className="inline-flex w-full items-center justify-center gap-1.5 rounded-xl bg-emerald-50 text-emerald-700 px-3 py-2 text-sm font-medium shadow-sm transition hover:bg-emerald-700 hover:text-white active:bg-emerald-700 active:text-white disabled:opacity-50"
+          >
+            {saving ? "Сохранение..." : "Сохранить"}
+          </button>
+          {initial.id && (
+            <>
+              <Link
+                href={previewHref}
+                onClick={(e) => guardNav(e, previewHref)}
+                className="inline-flex w-full items-center justify-center gap-1.5 rounded-xl bg-accent2-soft text-accent2-strong px-3 py-2 text-sm font-medium transition hover:bg-amber-100"
+              >
+                <Eye className="w-4 h-4" />
+                Предпросмотр
+              </Link>
+              <Link
+                href={submissionsHref}
+                onClick={(e) => guardNav(e, submissionsHref)}
+                className="inline-flex w-full items-center justify-center gap-1.5 rounded-xl bg-gradient-to-br from-accent to-accent-deep text-white px-3 py-2 text-sm font-medium shadow-sm transition hover:brightness-110"
+              >
+                Прохождения
+                <ArrowRight className="w-4 h-4" />
+              </Link>
+            </>
+          )}
+
+          <div className="my-1 border-t border-line" />
+
+          <DropdownMenu
+            trigger={
+              <>
+                <Plus className="w-4 h-4" />
+                Добавить вопрос
+              </>
+            }
+            triggerClassName="inline-flex w-full items-center justify-center gap-1.5 rounded-xl bg-slate-100 px-3 py-2 text-sm font-medium text-foreground transition hover:bg-slate-200"
+            panelClassName="w-full"
+            ariaLabel="Добавить вопрос"
+            inline
+          >
+            {ADD_BLOCK_OPTIONS.map(({ type, icon: Icon, title, description }) => (
+              <button
+                key={type}
+                onClick={() => addBlock(type)}
+                className="flex w-full items-start gap-3 px-3 py-2.5 text-left transition hover:bg-black/5"
+              >
+                <span
+                  className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg ${
+                    isDisplayOnlyBlock(type)
+                      ? "bg-accent2-soft text-accent2-strong"
+                      : "bg-accent-soft text-accent"
+                  }`}
+                >
+                  <Icon className="h-4 w-4" />
+                </span>
+                <span>
+                  <span className="block text-sm font-medium text-foreground">{title}</span>
+                  <span className="mt-0.5 block text-xs text-muted">{description}</span>
+                </span>
+              </button>
+            ))}
+          </DropdownMenu>
+        </div>
       </div>
     </div>
   );

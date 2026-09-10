@@ -30,6 +30,7 @@ export function BlockEditorCard({
 }) {
   return (
     <div
+      id={`editor-block-${block.id}`}
       className={`rounded-2xl border border-line border-l-4 bg-white p-4 space-y-3 shadow-sm transition hover:shadow-md hover:-translate-y-0.5 ${
         isDisplayOnlyBlock(block.type) ? DISPLAY_TYPE_BORDER : INPUT_TYPE_BORDER
       }`}
