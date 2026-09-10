@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowRight, Check, Eye } from "lucide-react";
@@ -40,7 +40,13 @@ export function TemplateBuilder({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [dirty, setDirty] = useState(false);
+  const [showSavedToast, setShowSavedToast] = useState(false);
   const savedIdRef = useRef<string | undefined>(initial.id);
+  const toastTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+
+  useEffect(() => {
+    return () => clearTimeout(toastTimerRef.current);
+  }, []);
 
   function updateName(value: string) {
     setName(value);
@@ -116,6 +122,11 @@ export function TemplateBuilder({
     const data = await res.json();
     savedIdRef.current = data.id ?? savedIdRef.current;
     setDirty(false);
+
+    setShowSavedToast(true);
+    clearTimeout(toastTimerRef.current);
+    toastTimerRef.current = setTimeout(() => setShowSavedToast(false), 2500);
+
     return true;
   }
 
@@ -158,6 +169,12 @@ export function TemplateBuilder({
 
   return (
     <div className="space-y-6">
+      {showSavedToast && (
+        <div className="fixed top-4 right-4 z-30 flex items-center gap-2 rounded-xl border border-[#d7dfb0] bg-[#eef2d9] text-[#55611f] px-4 py-2.5 text-sm font-medium shadow-lg toast-in">
+          <Check className="w-4 h-4" />
+          Изменения сохранены
+        </div>
+      )}
       <BackLink href={templatesHref} onClick={(e) => guardNav(e, templatesHref)}>
         Шаблоны
       </BackLink>
@@ -244,14 +261,9 @@ export function TemplateBuilder({
         <button
           onClick={handleSaveClick}
           disabled={saving}
-          className={`inline-flex w-full items-center justify-center gap-1.5 rounded-xl px-3 py-2 text-sm font-medium shadow-sm transition disabled:opacity-50 ${
-            !saving && !dirty
-              ? "bg-emerald-600 text-white hover:bg-emerald-700"
-              : "bg-gradient-to-br from-accent to-accent-deep text-white hover:brightness-110"
-          }`}
+          className="inline-flex w-full items-center justify-center gap-1.5 rounded-xl bg-accent-deep text-white px-3 py-2 text-sm font-medium shadow-sm transition hover:brightness-110 disabled:opacity-50"
         >
-          {!saving && !dirty && <Check className="w-4 h-4 icon-pop" />}
-          {saving ? "Сохранение..." : dirty ? "Сохранить" : "Сохранено"}
+          {saving ? "Сохранение..." : "Сохранить"}
         </button>
         {initial.id && (
           <>
