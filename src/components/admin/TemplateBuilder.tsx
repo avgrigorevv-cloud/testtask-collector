@@ -168,14 +168,14 @@ export function TemplateBuilder({
     : "";
 
   return (
-    <div className="flex w-fit items-start gap-8">
+    <div className="flex items-start gap-8">
       {showSavedToast && (
         <div className="fixed top-4 right-4 z-30 flex items-center gap-2 rounded-xl border border-[#d7dfb0] bg-[#eef2d9] text-[#55611f] px-4 py-2.5 text-sm font-medium shadow-lg toast-in">
           <Check className="w-4 h-4" />
           Изменения сохранены
         </div>
       )}
-      <div className="max-w-2xl flex-1 space-y-6">
+      <div className="min-w-0 flex-1 space-y-6">
         <BackLink href={templatesHref} onClick={(e) => guardNav(e, templatesHref)}>
           Шаблоны
         </BackLink>
