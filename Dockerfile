@@ -1,4 +1,4 @@
-FROM node:20-bookworm-slim AS builder
+FROM node:22-bookworm-slim AS builder
 
 WORKDIR /app
 
@@ -17,7 +17,7 @@ RUN npx prisma generate
 ENV NODE_OPTIONS=--max-old-space-size=896
 RUN npm run build
 
-FROM node:20-bookworm-slim AS runner
+FROM node:22-bookworm-slim AS runner
 
 WORKDIR /app
 
