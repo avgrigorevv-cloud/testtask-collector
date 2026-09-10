@@ -168,7 +168,7 @@ export function TemplateBuilder({
     : "";
 
   return (
-    <div className="flex items-start gap-8">
+    <div className="flex w-fit items-start gap-8">
       {showSavedToast && (
         <div className="fixed top-4 right-4 z-30 flex items-center gap-2 rounded-xl border border-[#d7dfb0] bg-[#eef2d9] text-[#55611f] px-4 py-2.5 text-sm font-medium shadow-lg toast-in">
           <Check className="w-4 h-4" />
@@ -230,36 +230,10 @@ export function TemplateBuilder({
           )}
         </div>
 
-        <div className="rounded-2xl border border-dashed border-slate-300 p-4">
-          <p className="text-xs uppercase tracking-wide text-slate-400 mb-2">
-            Добавить блок
-          </p>
-          <div className="flex flex-wrap gap-2">
-            {DISPLAY_BLOCK_TYPES.map((type) => (
-              <button
-                key={type}
-                onClick={() => addBlock(type)}
-                className="rounded-lg bg-slate-100 hover:bg-slate-200 px-3 py-1.5 text-sm"
-              >
-                + {BLOCK_TYPE_LABELS[type]}
-              </button>
-            ))}
-            {INPUT_BLOCK_TYPES.filter((type) => type !== "file_upload").map((type) => (
-              <button
-                key={type}
-                onClick={() => addBlock(type)}
-                className="rounded-lg bg-slate-100 hover:bg-slate-200 px-3 py-1.5 text-sm"
-              >
-                + {BLOCK_TYPE_LABELS[type]}
-              </button>
-            ))}
-          </div>
-        </div>
-
         {error && <p className="text-sm text-red-600">{error}</p>}
       </div>
 
-      <div className="sticky top-36 z-20 flex w-44 flex-shrink-0 flex-col gap-4 rounded-2xl border border-line bg-white p-2 shadow-lg">
+      <div className="sticky top-36 z-20 flex w-52 flex-shrink-0 flex-col gap-2 rounded-2xl border border-line bg-white p-2 shadow-lg">
         <button
           onClick={handleSaveClick}
           disabled={saving}
@@ -287,6 +261,29 @@ export function TemplateBuilder({
             </Link>
           </>
         )}
+
+        <div className="my-1 border-t border-line" />
+        <p className="px-1 text-[11px] font-medium uppercase tracking-wide text-slate-400">
+          Добавить блок
+        </p>
+        {DISPLAY_BLOCK_TYPES.map((type) => (
+          <button
+            key={type}
+            onClick={() => addBlock(type)}
+            className="w-full rounded-lg bg-slate-100 px-2.5 py-1.5 text-left text-xs leading-snug transition hover:bg-slate-200"
+          >
+            + {BLOCK_TYPE_LABELS[type]}
+          </button>
+        ))}
+        {INPUT_BLOCK_TYPES.filter((type) => type !== "file_upload").map((type) => (
+          <button
+            key={type}
+            onClick={() => addBlock(type)}
+            className="w-full rounded-lg bg-slate-100 px-2.5 py-1.5 text-left text-xs leading-snug transition hover:bg-slate-200"
+          >
+            + {BLOCK_TYPE_LABELS[type]}
+          </button>
+        ))}
       </div>
     </div>
   );
