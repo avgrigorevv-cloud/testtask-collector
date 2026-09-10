@@ -1,25 +1,15 @@
 "use client";
 
-import { BLOCK_TYPE_LABELS, isDisplayOnlyBlock, type Block, type BlockType } from "@/lib/blocks";
+import { BLOCK_TYPE_LABELS, isDisplayOnlyBlock, type Block } from "@/lib/blocks";
 import { AdminFileUpload } from "@/components/admin/AdminFileUpload";
 
-const BLOCK_TYPE_COLORS: Record<BlockType, string> = {
-  attachment: "text-amber-600",
-  info: "text-accent",
-  link: "text-sky-600",
-  text: "text-violet-600",
-  file_upload: "text-emerald-600",
-  image_annotate: "text-rose-600",
-};
-
-const BLOCK_TYPE_BORDERS: Record<BlockType, string> = {
-  attachment: "border-l-amber-400",
-  info: "border-l-accent",
-  link: "border-l-sky-400",
-  text: "border-l-violet-400",
-  file_upload: "border-l-emerald-400",
-  image_annotate: "border-l-rose-400",
-};
+// Restrained to exactly two colors, mapped to a real distinction (does the
+// candidate have to answer this block or not) rather than a different hue
+// per block type.
+const INPUT_TYPE_COLOR = "text-accent";
+const INPUT_TYPE_BORDER = "border-l-accent";
+const DISPLAY_TYPE_COLOR = "text-accent2-strong";
+const DISPLAY_TYPE_BORDER = "border-l-accent2";
 
 export function BlockEditorCard({
   block,
@@ -40,11 +30,15 @@ export function BlockEditorCard({
 }) {
   return (
     <div
-      className={`rounded-2xl border border-line border-l-4 bg-white p-4 space-y-3 shadow-sm transition hover:shadow-md hover:-translate-y-0.5 ${BLOCK_TYPE_BORDERS[block.type]}`}
+      className={`rounded-2xl border border-line border-l-4 bg-white p-4 space-y-3 shadow-sm transition hover:shadow-md hover:-translate-y-0.5 ${
+        isDisplayOnlyBlock(block.type) ? DISPLAY_TYPE_BORDER : INPUT_TYPE_BORDER
+      }`}
     >
       <div className="flex items-center justify-between">
         <span
-          className={`text-xs font-bold uppercase tracking-wide ${BLOCK_TYPE_COLORS[block.type]}`}
+          className={`text-xs font-bold uppercase tracking-wide ${
+            isDisplayOnlyBlock(block.type) ? DISPLAY_TYPE_COLOR : INPUT_TYPE_COLOR
+          }`}
         >
           {BLOCK_TYPE_LABELS[block.type]}
         </span>

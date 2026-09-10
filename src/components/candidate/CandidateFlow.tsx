@@ -147,8 +147,13 @@ export function CandidateFlow({
 
   if (status === "submitted") {
     return (
-      <div className="min-h-screen bg-background">
-        <div className="max-w-2xl mx-auto px-4 py-24 text-center">
+      <div className="relative min-h-screen bg-background">
+        <div className="bg-blobs">
+          <div className="blob blob-a" />
+          <div className="blob blob-b" />
+          <div className="blob blob-c" />
+        </div>
+        <div className="relative max-w-2xl mx-auto px-4 py-24 text-center">
           <h1 className="text-2xl font-semibold text-foreground">Спасибо!</h1>
           <p className="text-muted mt-2">
             Ваш ответ по заданию «{templateName}» отправлен. Мы свяжемся с вами по итогам
@@ -160,13 +165,21 @@ export function CandidateFlow({
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="relative min-h-screen bg-background">
+      <div className="bg-blobs">
+        <div className="blob blob-a" />
+        <div className="blob blob-b" />
+        <div className="blob blob-c" />
+      </div>
       {preview && (
-        <div className="sticky top-0 z-10 border-b border-accent2/30 bg-accent2-soft text-accent2-strong text-sm text-center py-2 font-medium">
+        // top-16 (not top-0): this component is nested inside the admin
+        // shell's own sticky header when used in preview mode, so it needs
+        // to sit below that header rather than stack on top of it.
+        <div className="sticky top-16 z-10 border-b border-accent2/30 bg-accent2-soft text-accent2-strong text-sm text-center py-2 font-medium">
           Предпросмотр — вы видите то, что увидит кандидат. Ответы не сохраняются.
         </div>
       )}
-      <div className="max-w-2xl mx-auto px-4 py-10 space-y-8">
+      <div className="relative max-w-2xl mx-auto px-4 py-10 space-y-8">
         <div>
           <div className="flex items-center justify-between gap-3">
             <p className="text-xs uppercase tracking-wide text-slate-400">{roleLabel}</p>

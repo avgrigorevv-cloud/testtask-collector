@@ -168,7 +168,7 @@ export function TemplateBuilder({
     : "";
 
   return (
-    <div className="space-y-6">
+    <div className="max-w-2xl space-y-6">
       {showSavedToast && (
         <div className="fixed top-4 right-4 z-30 flex items-center gap-2 rounded-xl border border-[#d7dfb0] bg-[#eef2d9] text-[#55611f] px-4 py-2.5 text-sm font-medium shadow-lg toast-in">
           <Check className="w-4 h-4" />
@@ -257,7 +257,7 @@ export function TemplateBuilder({
 
       {error && <p className="text-sm text-red-600">{error}</p>}
 
-      <div className="flex w-full flex-col gap-3 rounded-2xl border border-line bg-white p-2 shadow-sm min-[1600px]:fixed min-[1600px]:right-6 min-[1600px]:top-36 min-[1600px]:z-20 min-[1600px]:w-44 min-[1600px]:gap-4 min-[1600px]:shadow-lg">
+      <div className="fixed right-6 top-36 z-20 flex w-44 flex-col gap-4 rounded-2xl border border-line bg-white p-2 shadow-lg">
         <button
           onClick={handleSaveClick}
           disabled={saving}
