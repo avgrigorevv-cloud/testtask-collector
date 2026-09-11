@@ -15,6 +15,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Log in to Docker Hub
+        run: echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+
       - name: Build image
         run: docker build -t testtask-collector:${{ github.sha }} -t testtask-collector:latest .
 
@@ -54,4 +57,4 @@ jobs:
           exit 1
 
       - name: Prune old images
-        run: docker image prune -f
+        run: docker image prune -a -f
