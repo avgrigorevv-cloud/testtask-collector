@@ -3,6 +3,7 @@ import { Layers } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import type { Block } from "@/lib/blocks";
 import { DeleteTemplateButton } from "@/components/admin/DeleteTemplateButton";
+import { DuplicateTemplateButton } from "@/components/admin/DuplicateTemplateButton";
 import { DropdownMenu } from "@/components/admin/DropdownMenu";
 
 export const dynamic = "force-dynamic";
@@ -62,6 +63,8 @@ export default async function AdminDashboard() {
               >
                 <div className="absolute right-4 top-4">
                   <DropdownMenu>
+                    <DuplicateTemplateButton templateId={t.id} />
+                    <div className="my-1 border-t border-line" />
                     <DeleteTemplateButton templateId={t.id} templateName={t.name} />
                   </DropdownMenu>
                 </div>
