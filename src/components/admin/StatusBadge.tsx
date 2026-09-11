@@ -3,7 +3,7 @@ import { CheckCircle2 } from "lucide-react";
 export function StatusBadge({ status }: { status: string }) {
   if (status === "submitted") {
     return (
-      <span className="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full bg-accent-soft text-accent-strong">
+      <span className="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700">
         <CheckCircle2 className="w-3.5 h-3.5" />
         Ответ получен
       </span>
