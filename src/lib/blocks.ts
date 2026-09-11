@@ -66,7 +66,7 @@ export type Block =
 
 export const BLOCK_TYPE_LABELS: Record<BlockType, string> = {
   attachment: "Прикреплённый файл (инструкция)",
-  info: "Информационный блок (без ответа)",
+  info: "Информация",
   link: "Ссылка",
   text: "Текстовый ответ",
   file_upload: "Загрузка файла",
