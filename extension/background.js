@@ -12,8 +12,11 @@ async function getState() {
 
 function normalizeServerUrl(raw) {
   const url = new URL(String(raw || "").trim());
-  if (url.protocol !== "https:" && url.protocol !== "http:") {
-    throw new Error("Адрес сервера должен начинаться с https://");
+  // Plain http only for a server on this computer: the password and the
+  // session token must not travel unencrypted over the network.
+  const local = ["localhost", "127.0.0.1", "[::1]"].includes(url.hostname);
+  if (url.protocol !== "https:" && !(url.protocol === "http:" && local)) {
+    throw new Error("Адрес сервера должен начинаться с https:// (http:// разрешен только для localhost)");
   }
   return url.origin;
 }
@@ -182,11 +185,8 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
 
 chrome.commands.onCommand.addListener(async (command, tab) => {
   if (command !== "capture") return;
-  const { token } = await getState();
-  if (!token) {
-    chrome.action.openPopup?.().catch(() => {});
-    return;
-  }
+  // Works without a login too: the editor can copy the result to the clipboard,
+  // only saving to the server needs a login.
   startCaptureForTab(tab).catch((e) => console.warn("[tt-capture]", e.message));
 });
 

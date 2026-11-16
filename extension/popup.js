@@ -54,17 +54,20 @@ $("view-login").addEventListener("submit", async (e) => {
   render();
 });
 
-$("capture-btn").addEventListener("click", async () => {
+async function startCapture(button) {
   setError("");
-  $("capture-btn").disabled = true;
+  button.disabled = true;
   const res = await send("tt-start-capture");
   if (!res.ok) {
-    $("capture-btn").disabled = false;
+    button.disabled = false;
     setError(res.error);
     return;
   }
   window.close();
-});
+}
+
+$("capture-btn").addEventListener("click", () => startCapture($("capture-btn")));
+$("capture-nologin-btn").addEventListener("click", () => startCapture($("capture-nologin-btn")));
 
 $("logout-btn").addEventListener("click", async () => {
   await send("tt-logout");

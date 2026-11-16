@@ -236,7 +236,7 @@
     const applyBtn = el("button", { class: "round ok", text: "✓", title: "Применить обрезку", "aria-label": "Применить обрезку", hidden: "", onclick: applyCrop });
     const cancelCropBtn = el("button", { class: "round no", text: "✕", title: "Отменить обрезку", "aria-label": "Отменить обрезку", onclick: toggleCrop });
     const acts = el("div", { class: "acts", hidden: "" }, [applyBtn, cancelCropBtn]);
-    const resetBtn = el("button", { class: "tool", text: "Вернуть исходный", hidden: "", onclick: resetCrop });
+    const resetBtn = el("button", { class: "tool", text: "Вернуть исходный", hidden: "", onclick: resetAll });
     const copyBtn = el("button", { class: "tool icon", "data-tip": "Копировать фото + текст", "aria-label": "Копировать скриншот с комментариями в буфер обмена", onclick: copyToClipboard });
     copyBtn.innerHTML = COPY_ICON; // static markup, no page data
     const tools = el("div", { class: "tools" }, [gridBtn, cropBtn, resetBtn, copyBtn]);
@@ -479,6 +479,7 @@
 
   function paintOverlay() {
     if (!ui || !ui.mcanvas) return;
+    syncReset();
     const c = ui.mcanvas;
     const w = ui.img.clientWidth;
     const h = ui.img.clientHeight;
@@ -786,23 +787,29 @@
     await setImage(canvas.toDataURL("image/png"));
     toggleCrop();
     paintOverlay();
-    ui.resetBtn.hidden = false;
     renderPins();
     setStatus(dropped ? `Обрезано. Удалено меток вне области: ${dropped}` : "Обрезано", "ok");
   }
 
-  async function resetCrop() {
-    if (state.dataUrl === state.originalDataUrl) return;
-    if (state.pins.length && !confirm("Вернуть исходный скриншот? Метки будут удалены.")) return;
+  // Shown as soon as there is anything to undo: a mark, a pinned measure or a crop.
+  function syncReset() {
+    if (!ui || !ui.resetBtn) return;
+    ui.resetBtn.hidden = !(state.pins.length || state.measures.length || state.dataUrl !== state.originalDataUrl);
+  }
+
+  // Back to the untouched screenshot: removes crop, marks and pinned measures.
+  async function resetAll() {
+    if ((state.pins.length || state.measures.length) && !confirm("Вернуть исходный скриншот? Метки, замеры и обрезка будут удалены.")) return;
     state.pins = [];
+    state.measures = [];
+    state.sel = null;
+    state.hover = null;
     state.activeIndex = -1;
     state.cssWidth = state.originalCssWidth;
     state.view = { x0: 0, y0: 0 };
-    state.hover = null;
-    await setImage(state.originalDataUrl);
-    paintOverlay();
     if (state.cropping) toggleCrop();
-    ui.resetBtn.hidden = true;
+    if (state.dataUrl !== state.originalDataUrl) await setImage(state.originalDataUrl);
+    paintOverlay();
     renderPins();
     setStatus("");
   }
@@ -840,6 +847,7 @@
   }
 
   function renderPins() {
+    syncReset();
     ui.shot.querySelectorAll(".pin, .areabox, .bubble").forEach((n) => n.remove());
     ui.list.replaceChildren();
     ui.empty.hidden = state.pins.length > 0;

@@ -13,7 +13,7 @@
   <section id="view-loading"><p class="muted">Загрузка...</p></section>
 
   <form id="view-login" hidden>
-    <p class="hint" id="login-hint">Войдите, чтобы скриншоты сохранялись в вашу папку.</p>
+    <p class="hint" id="login-hint">Войдите, чтобы сохранять скриншоты на сервер. Копирование в буфер обмена работает и без входа.</p>
     <label>Адрес сервиса
       <input id="server" type="url" required placeholder="https://task.uxteam.space" />
     </label>
@@ -24,6 +24,7 @@
       <input id="password" type="password" autocomplete="current-password" required />
     </label>
     <button type="submit" id="login-btn" class="primary">Войти</button>
+    <button type="button" id="capture-nologin-btn" class="link">Скриншот без входа (только буфер обмена)</button>
   </form>
 
   <section id="view-main" hidden>
