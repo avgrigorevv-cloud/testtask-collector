@@ -25,7 +25,7 @@
       outline: 1px solid rgba(255,255,255,.15);
     }
     .shot img {
-      display: block; max-width: 100%; max-height: calc(100vh - 48px);
+      display: block; max-width: 100%; max-height: calc(100vh - 170px);
       user-select: none; -webkit-user-drag: none;
     }
     .wrap { display: flex; flex-direction: column; align-items: center; gap: 12px; max-width: 100%; }
@@ -40,6 +40,17 @@
     .tool:hover { color: #0d0f1e; }
     .tool.on { background: #eef0fa; color: #4f46e5; box-shadow: inset 0 0 0 1px #c7cbf0; }
     .tool[hidden] { display: none; }
+    .acts { align-self: flex-end; display: flex; gap: 10px; }
+    .acts[hidden], .round[hidden] { display: none; }
+    .round {
+      width: 44px; height: 44px; padding: 0; border: 0; border-radius: 50%;
+      font: 600 22px/44px system-ui, sans-serif; text-align: center; cursor: pointer;
+      box-shadow: 0 4px 14px rgba(0,0,0,.35);
+    }
+    .round.ok { background: #16a34a; color: #fff; }
+    .round.ok:hover { background: #15803d; }
+    .round.no { background: #fff; color: #dc2626; }
+    .round.no:hover { background: #fef2f2; }
     .grid {
       position: absolute; inset: 0; pointer-events: none; display: none;
       background-image:
@@ -149,9 +160,11 @@
     const shot = el("div", { class: "shot", onclick: onShotClick, onpointerdown: onCropDown }, [img, grid, sel]);
     const gridBtn = el("button", { class: "tool", text: "Сетка", title: "Показать сетку 10% (крупная) и 2% (мелкая)", onclick: toggleGrid });
     const cropBtn = el("button", { class: "tool", text: "Обрезать", title: "Выделите область, которую нужно оставить", onclick: toggleCrop });
-    const applyBtn = el("button", { class: "tool", text: "Применить", hidden: "", onclick: applyCrop });
+    const applyBtn = el("button", { class: "round ok", text: "✓", title: "Применить обрезку", "aria-label": "Применить обрезку", hidden: "", onclick: applyCrop });
+    const cancelCropBtn = el("button", { class: "round no", text: "✕", title: "Отменить обрезку", "aria-label": "Отменить обрезку", onclick: toggleCrop });
+    const acts = el("div", { class: "acts", hidden: "" }, [applyBtn, cancelCropBtn]);
     const resetBtn = el("button", { class: "tool", text: "Вернуть исходный", hidden: "", onclick: resetCrop });
-    const tools = el("div", { class: "tools" }, [gridBtn, cropBtn, applyBtn, resetBtn]);
+    const tools = el("div", { class: "tools" }, [gridBtn, cropBtn, resetBtn]);
     const list = el("ul");
     const empty = el("p", { class: "empty", text: "Кликните по скриншоту, чтобы поставить метку." });
     const note = el("textarea", {
@@ -165,7 +178,7 @@
 
     // tabindex keeps focus inside the editor when clicking empty areas, so Esc still works
     const root = el("div", { class: "root", tabindex: "-1" }, [
-      el("div", { class: "stage" }, [el("div", { class: "wrap" }, [tools, shot])]),
+      el("div", { class: "stage" }, [el("div", { class: "wrap" }, [tools, shot, acts])]),
       el("aside", { class: "panel" }, [
         el("div", { class: "head" }, [
           el("p", { class: "title", text: "Метки на скриншоте" }),
@@ -190,7 +203,7 @@
     host.addEventListener("keydown", onKeyDown);
     window.addEventListener("beforeunload", onBeforeUnload);
 
-    ui = { shadow, img, shot, grid, sel, gridBtn, cropBtn, applyBtn, resetBtn, list, empty, note, status, saveBtn, cancelBtn, crop: null };
+    ui = { shadow, img, shot, grid, sel, gridBtn, cropBtn, applyBtn, acts, resetBtn, list, empty, note, status, saveBtn, cancelBtn, crop: null };
     document.documentElement.append(host);
     saveBtn.focus();
     renderPins();
@@ -254,7 +267,8 @@
     ui.shot.classList.toggle("cropping", state.cropping);
     ui.cropBtn.classList.toggle("on", state.cropping);
     ui.applyBtn.hidden = true;
-    setStatus(state.cropping ? "Выделите мышью область, которую нужно оставить, затем «Применить»" : "");
+    ui.acts.hidden = !state.cropping;
+    setStatus(state.cropping ? "Выделите мышью область, которую нужно оставить, и нажмите ✓" : "");
   }
 
   function pointPercent(e) {
