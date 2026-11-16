@@ -115,6 +115,28 @@ test("capture is saved into the user's folder with pins and page info", async ()
   assert.deepEqual(JSON.parse(capture.pins), [{ imageIndex: 0, x: 10, y: 20, comment: "кнопка" }]);
 });
 
+test("area pins (w/h) and inline flag are stored; invalid areas are rejected", async () => {
+  const token = await tokenFor(aliceLogin);
+  const pins = [
+    { imageIndex: 0, x: 10, y: 20, w: 30, h: 15, comment: "блок", inline: true },
+    { imageIndex: 0, x: 50, y: 50, comment: "точка" },
+  ];
+  const res = await createCapture(captureRequest(token, { pins: JSON.stringify(pins) }));
+  assert.equal(res.status, 200);
+  const { id } = await res.json();
+  const capture = await prisma.capture.findUniqueOrThrow({ where: { id } });
+  assert.deepEqual(JSON.parse(capture.pins), pins);
+
+  const outside = await createCapture(
+    captureRequest(token, { pins: JSON.stringify([{ x: 80, y: 10, w: 40, h: 10 }]) })
+  );
+  assert.equal(outside.status, 400);
+  const empty = await createCapture(
+    captureRequest(token, { pins: JSON.stringify([{ x: 10, y: 10, w: 0, h: 10 }]) })
+  );
+  assert.equal(empty.status, 400);
+});
+
 test("non-image upload (not PNG/JPEG) and malformed pins are rejected", async () => {
   const token = await tokenFor(aliceLogin);
   const notPng = await createCapture(

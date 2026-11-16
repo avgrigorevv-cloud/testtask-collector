@@ -7,7 +7,11 @@ export const MAX_PAGE_URL_LENGTH = 4000;
 
 // Validates pins sent by the extension. Shape matches the Pin type used by
 // ImageAnnotate, so the admin can render captures with the same component.
-export function parsePins(raw: unknown): Pin[] | null {
+// A pin can also be a rectangular area (w/h in percent, x/y is its top-left
+// corner) and can ask for its comment to be drawn next to it (inline).
+export type CapturePin = Pin & { w?: number; h?: number; inline?: boolean };
+
+export function parsePins(raw: unknown): CapturePin[] | null {
   let value: unknown = raw;
   if (typeof raw === "string") {
     try {
@@ -17,7 +21,7 @@ export function parsePins(raw: unknown): Pin[] | null {
     }
   }
   if (!Array.isArray(value) || value.length > MAX_PINS) return null;
-  const pins: Pin[] = [];
+  const pins: CapturePin[] = [];
   for (const item of value) {
     if (!item || typeof item !== "object") return null;
     const p = item as Record<string, unknown>;
@@ -27,7 +31,17 @@ export function parsePins(raw: unknown): Pin[] | null {
     if (x < 0 || x > 100 || y < 0 || y > 100) return null;
     const comment = typeof p.comment === "string" ? p.comment : "";
     if (comment.length > MAX_COMMENT_LENGTH) return null;
-    pins.push({ imageIndex: 0, x, y, comment });
+    const pin: CapturePin = { imageIndex: 0, x, y, comment };
+    if (p.w !== undefined || p.h !== undefined) {
+      const w = Number(p.w);
+      const h = Number(p.h);
+      if (!Number.isFinite(w) || !Number.isFinite(h) || w <= 0 || h <= 0) return null;
+      if (x + w > 100.01 || y + h > 100.01) return null;
+      pin.w = w;
+      pin.h = h;
+    }
+    if (p.inline === true) pin.inline = true;
+    pins.push(pin);
   }
   return pins;
 }
