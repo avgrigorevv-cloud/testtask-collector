@@ -34,7 +34,7 @@ $("view-login").addEventListener("submit", async (e) => {
   try {
     origin = new URL($("server").value.trim()).origin;
   } catch {
-    setError("Проверьте адрес сервиса, например https://task.uxteam.space");
+    setError("Проверьте адрес сервиса, например https://your-server.example");
     return;
   }
   $("login-btn").disabled = true;

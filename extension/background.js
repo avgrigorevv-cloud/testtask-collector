@@ -2,7 +2,8 @@
 // capture and upload. The overlay (overlay.js) only talks to this worker, so
 // the bearer token never reaches the page's context.
 
-const DEFAULT_SERVER = "https://task.uxteam.space";
+// No built-in server: the address is entered once at login (https://, or http:// for localhost).
+const DEFAULT_SERVER = "";
 
 async function getState() {
   const { serverUrl = DEFAULT_SERVER, token = null, login = null } =
