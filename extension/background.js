@@ -78,6 +78,9 @@ async function checkSession() {
 const RESTRICTED_MSG =
   "На этой странице браузер не разрешает расширениям делать скриншоты (служебные страницы, магазин расширений)";
 
+const RESTRICTED_URL_RE =
+  /^(chrome|edge|brave|opera|vivaldi|about|chrome-extension|devtools|view-source):|^https:\/\/(chromewebstore\.google\.com|chrome\.google\.com\/webstore|microsoftedge\.microsoft\.com\/addons)/i;
+
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 // Chrome allows only ~2 captureVisibleTab calls per second; retry once on that
@@ -99,7 +102,11 @@ async function captureVisible(windowId) {
 
 function explainCaptureError(e) {
   const msg = String((e && e.message) || e);
-  if (/cannot be scripted|cannot access|chrome:\/\/|extensions gallery|permission|Missing host permission/i.test(msg)) {
+  // activeTab grant missing/lost (the tab navigated after the click): retry
+  if (/'activeTab' permission is (required|not in effect)/i.test(msg)) {
+    return new Error("Страница сменилась после нажатия. Нажмите кнопку расширения еще раз");
+  }
+  if (/cannot be scripted|cannot access|chrome:\/\/|extensions gallery|Missing host permission/i.test(msg)) {
     return new Error(RESTRICTED_MSG);
   }
   return new Error(`Не удалось сделать скриншот, попробуйте еще раз (${msg})`);
@@ -107,6 +114,8 @@ function explainCaptureError(e) {
 
 async function startCaptureForTab(tab) {
   if (!tab || tab.id == null) throw new Error("Не найдена активная вкладка");
+  // tab.url is visible thanks to activeTab; service pages can't be captured
+  if (tab.url && RESTRICTED_URL_RE.test(tab.url)) throw new Error(RESTRICTED_MSG);
   let dataUrl;
   try {
     dataUrl = await captureVisible(tab.windowId);

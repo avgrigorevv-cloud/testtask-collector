@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { extPreflight, withExtCors } from "@/lib/extCors";
 import { prisma } from "@/lib/prisma";
-import { DUMMY_HASH, createExtSession, normalizeLogin, verifyPassword } from "@/lib/extAuth";
+import { DUMMY_HASH, LOGIN_RE, createExtSession, normalizeLogin, verifyPassword } from "@/lib/extAuth";
 import { isRateLimited, clientIp } from "@/lib/rateLimit";
 
 // Login for the browser extension. Returns a bearer token that the extension
@@ -27,6 +27,11 @@ export const POST = withExtCors(async function postHandler(request: Request) {
   }
 
   const normalized = normalizeLogin(login);
+  // Logins that can't exist are rejected before touching the rate-limit map
+  // (keeps arbitrary long strings out of it). Same 401 as a wrong password.
+  if (!LOGIN_RE.test(normalized)) {
+    return NextResponse.json({ error: "Неверный логин или пароль" }, { status: 401 });
+  }
   // Per-login limit on top of the per-IP one: X-Forwarded-For can be spoofed
   // if the app port is reachable without the reverse proxy.
   if (isRateLimited(`ext-login-user:${normalized}`, 10, 5 * 60 * 1000)) {

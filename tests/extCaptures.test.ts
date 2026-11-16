@@ -13,7 +13,7 @@ import { hashPassword } from "../src/lib/extAuth.ts";
 import { POST as login } from "../src/app/api/ext/login/route.ts";
 import { GET as me } from "../src/app/api/ext/me/route.ts";
 import { POST as logout } from "../src/app/api/ext/logout/route.ts";
-import { POST as createCapture } from "../src/app/api/ext/captures/route.ts";
+import { POST as createCapture, OPTIONS } from "../src/app/api/ext/captures/route.ts";
 import { GET as getCaptureFile } from "../src/app/api/files/captures/[id]/route.ts";
 import { POST as createExtUser } from "../src/app/api/admin/ext-users/route.ts";
 import { PATCH as changePassword } from "../src/app/api/admin/ext-users/[id]/route.ts";
@@ -115,7 +115,7 @@ test("capture is saved into the user's folder with pins and page info", async ()
   assert.deepEqual(JSON.parse(capture.pins), [{ imageIndex: 0, x: 10, y: 20, comment: "кнопка" }]);
 });
 
-test("non-PNG upload and malformed pins are rejected", async () => {
+test("non-image upload (not PNG/JPEG) and malformed pins are rejected", async () => {
   const token = await tokenFor(aliceLogin);
   const notPng = await createCapture(
     captureRequest(token, { image: new File([Buffer.from("<svg/>")], "x.png", { type: "image/png" }) })
@@ -181,4 +181,54 @@ test("admin: password change revokes existing sessions", async () => {
   const after = await createCapture(captureRequest(token));
   assert.equal(after.status, 401);
   assert.equal((await loginAs(aliceLogin, "another-pass-2")).status, 200);
+});
+
+test("JPEG screenshot is accepted and served as image/jpeg", async () => {
+  const token = await tokenFor(bobLogin);
+  const jpeg = Buffer.concat([Buffer.from([0xff, 0xd8, 0xff, 0xe0]), Buffer.alloc(32)]);
+  const res = await createCapture(
+    captureRequest(token, { image: new File([jpeg], "capture.jpg", { type: "image/jpeg" }) })
+  );
+  assert.equal(res.status, 200);
+  const { id } = await res.json();
+  const capture = await prisma.capture.findUniqueOrThrow({ where: { id } });
+  assert.ok(capture.imageFile.endsWith(".jpg"));
+  const file = await getCaptureFile(
+    new NextRequest(`http://localhost/api/files/captures/${id}`, { headers: { Authorization: `Bearer ${token}` } }),
+    { params: Promise.resolve({ id }) }
+  );
+  assert.equal(file.headers.get("Content-Type"), "image/jpeg");
+});
+
+test("very long page URL is cut to 4000 characters, not rejected", async () => {
+  const token = await tokenFor(bobLogin);
+  const long = "https://example.com/?q=" + "x".repeat(6000);
+  const res = await createCapture(captureRequest(token, { pageUrl: long }));
+  assert.equal(res.status, 200);
+  const capture = await prisma.capture.findUniqueOrThrow({ where: { id: (await res.json()).id } });
+  assert.equal(capture.pageUrl.length, 4000);
+});
+
+test("admin: password over 72 bytes (bcrypt limit) is rejected", async () => {
+  const res = await createExtUser(
+    jsonRequest("http://localhost/api/admin/ext-users", { login: `dan-${suffix}`, password: "я".repeat(40) })
+  );
+  assert.equal(res.status, 400);
+});
+
+test("CORS: extension origin is allowed, a website origin is not", async () => {
+  const ext = await me(
+    new Request("http://localhost/api/ext/me", { headers: { Origin: "chrome-extension://abcdefghijklmnop" } })
+  );
+  assert.equal(ext.headers.get("Access-Control-Allow-Origin"), "chrome-extension://abcdefghijklmnop");
+  const site = await me(new Request("http://localhost/api/ext/me", { headers: { Origin: "https://evil.example" } }));
+  assert.equal(site.headers.get("Access-Control-Allow-Origin"), null);
+  const pre = OPTIONS(
+    new Request("http://localhost/api/ext/captures", {
+      method: "OPTIONS",
+      headers: { Origin: "chrome-extension://abcdefghijklmnop" },
+    })
+  );
+  assert.equal(pre.status, 204);
+  assert.match(pre.headers.get("Access-Control-Allow-Headers") ?? "", /Authorization/);
 });

@@ -9,7 +9,7 @@ const EXTENSION_ORIGIN_RE = /^(chrome|moz)-extension:\/\/[a-z0-9-]+$/i;
 
 function corsHeaders(request: Request): Record<string, string> {
   const origin = request.headers.get("origin");
-  if (!origin || !EXTENSION_ORIGIN_RE.test(origin)) return {};
+  if (!origin || !EXTENSION_ORIGIN_RE.test(origin)) return { Vary: "Origin" };
   return {
     "Access-Control-Allow-Origin": origin,
     "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
@@ -23,7 +23,15 @@ type Handler = (request: Request) => Promise<Response>;
 
 export function withExtCors(handler: Handler): Handler {
   return async (request) => {
-    const response = await handler(request);
+    let response: Response;
+    try {
+      response = await handler(request);
+    } catch (e) {
+      // Without CORS headers the browser hides a 500 and the extension would
+      // report "can't connect" instead of a server error.
+      console.error("[ext api]", e);
+      response = NextResponse.json({ error: "Ошибка сервера, попробуйте еще раз" }, { status: 500 });
+    }
     for (const [k, v] of Object.entries(corsHeaders(request))) response.headers.set(k, v);
     return response;
   };

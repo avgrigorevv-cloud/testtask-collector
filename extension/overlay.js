@@ -84,8 +84,9 @@
   const MAX_COMMENT = 2000;
   const MAX_NOTE = 5000;
   const MAX_URL = 4000;
-  // Server accepts up to 25 MB per image; bigger PNGs are re-encoded as JPEG.
-  const MAX_IMAGE_BYTES = 24 * 1024 * 1024;
+  // Server accepts up to 25 MB per image; keep each under 15 MB so both images
+  // fit in one extension message (~64 MB as base64). Bigger PNGs -> JPEG.
+  const MAX_IMAGE_BYTES = 15 * 1024 * 1024;
 
   let state = null; // { dataUrl, pins: [{x, y, comment}], activeIndex }
   let host = null;
@@ -179,7 +180,12 @@
     }
     state.closeArmed = true;
     setStatus(hint, "err");
-    setTimeout(() => state && (state.closeArmed = false), 2500);
+    clearTimeout(state.closeTimer);
+    state.closeTimer = setTimeout(() => {
+      if (!state) return;
+      state.closeArmed = false;
+      setStatus("");
+    }, 2500);
   }
 
   function close() {
