@@ -615,24 +615,12 @@
     if (!state) return;
     try {
       const canvas = await renderComposite();
-      // The Promise is passed straight to ClipboardItem so the write still
-      // counts as made inside the click (user activation).
-      const text = [
-        document.title,
-        location.href,
-        ...state.pins.map((p, i) => `${i + 1}. ${p.comment.trim()}`),
-        ui.note.value.trim(),
-      ]
-        .filter(Boolean)
-        .join("\n");
+      // Image only: if text/plain sits next to the PNG, PowerPoint/Word paste the text instead.
       const blob = await new Promise((resolve, reject) =>
         canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("toBlob"))), "image/png")
       );
       await navigator.clipboard.write([
-        new ClipboardItem({
-          "image/png": blob,
-          "text/plain": new Blob([text], { type: "text/plain" }),
-        }),
+        new ClipboardItem({ "image/png": blob }),
       ]);
       flashCopy("done", "Скопировано");
     } catch {
