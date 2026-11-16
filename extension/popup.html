@@ -10,28 +10,31 @@
     <span>Скриншоты с метками</span>
   </header>
 
-  <section id="view-loading"><p class="muted">Загрузка...</p></section>
-
-  <form id="view-login" hidden>
-    <p class="hint" id="login-hint">Войдите, чтобы сохранять скриншоты на сервер. Копирование в буфер обмена работает и без входа.</p>
-    <label>Адрес сервиса
-      <input id="server" type="url" required placeholder="https://your-server.example" />
-    </label>
-    <label>Логин
-      <input id="login" autocomplete="username" required />
-    </label>
-    <label>Пароль
-      <input id="password" type="password" autocomplete="current-password" required />
-    </label>
-    <button type="submit" id="login-btn" class="primary">Войти</button>
-    <button type="button" id="capture-nologin-btn" class="link">Скриншот без входа (только буфер обмена)</button>
-  </form>
-
-  <section id="view-main" hidden>
-    <p class="who">Вы вошли как <b id="who"></b></p>
+  <section id="view-main">
     <button id="capture-btn" class="primary">Сделать скриншот</button>
-    <p class="muted small">Или сочетание клавиш <kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>S</kbd></p>
-    <button id="logout-btn" class="link">Выйти</button>
+    <p class="muted small">Или сочетание клавиш <kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>S</kbd>.
+      Всё работает в браузере: скриншот можно скопировать в буфер обмена, ничего не отправляется в интернет.</p>
+
+    <details id="server-box">
+      <summary>Сохранять на свой сервер (необязательно)</summary>
+      <form id="view-login">
+        <p class="hint" id="login-hint">Нужен собственный сервер этого сервиса (инструкция в README репозитория).</p>
+        <label>Адрес сервиса
+          <input id="server" type="url" required placeholder="https://your-server.example" />
+        </label>
+        <label>Логин
+          <input id="login" autocomplete="username" required />
+        </label>
+        <label>Пароль
+          <input id="password" type="password" autocomplete="current-password" required />
+        </label>
+        <button type="submit" id="login-btn" class="primary">Войти</button>
+      </form>
+      <div id="view-account" hidden>
+        <p class="who">Вы вошли как <b id="who"></b></p>
+        <button id="logout-btn" class="link">Выйти</button>
+      </div>
+    </details>
   </section>
 
   <p id="error" class="error" hidden></p>

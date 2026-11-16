@@ -24,4 +24,7 @@ button { font: inherit; cursor: pointer; }
 .hint { margin: 0 0 12px; color: #6b6f85; }
 .who { margin: 0 0 12px; }
 .error { margin: 12px 0 0; padding: 8px 10px; border-radius: 10px; background: #fef2f2; color: #b91c1c; }
+details { margin-top: 14px; padding-top: 10px; border-top: 1px solid #e7e7f2; }
+summary { cursor: pointer; color: #6b6f85; font-size: 12px; margin-bottom: 10px; }
+details[open] summary { margin-bottom: 12px; }
 kbd { padding: 1px 5px; border: 1px solid #e7e7f2; border-radius: 4px; font: 11px ui-monospace, monospace; background: #f6f6fb; }

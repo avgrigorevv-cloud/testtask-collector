@@ -244,8 +244,9 @@
     const list = el("ul");
     const empty = el("p", { class: "empty", text: "Кликните по скриншоту, чтобы поставить метку, или зажмите и протяните рамку для области." });
     const status = el("p", { class: "status" });
-    const saveBtn = el("button", { class: "primary", text: "Сохранить", onclick: save });
-    const cancelBtn = el("button", { class: "ghost", text: "Отмена", onclick: () => requestClose("Нажмите «Отмена» еще раз, чтобы закрыть без сохранения") });
+    const saveBtn = el("button", { class: "primary", text: "Сохранить", hidden: "", onclick: save });
+    const copyMainBtn = el("button", { class: "primary", text: "Копировать", title: "Скриншот с метками и комментариями в буфер обмена", onclick: copyToClipboard });
+    const cancelBtn = el("button", { class: "ghost", text: "Закрыть", onclick: () => requestClose("Нажмите «Закрыть» еще раз, чтобы закрыть без копирования") });
 
     // tabindex keeps focus inside the editor when clicking empty areas, so Esc still works
     const root = el("div", { class: "root", tabindex: "-1" }, [
@@ -261,7 +262,7 @@
           addBtn,
           el("p", { class: "url", text: location.href }),
         ]),
-        el("div", { class: "foot" }, [status, el("div", { class: "row" }, [cancelBtn, saveBtn])]),
+        el("div", { class: "foot" }, [status, el("div", { class: "row" }, [cancelBtn, copyMainBtn, saveBtn])]),
       ]),
     ]);
     shadow.append(root);
@@ -273,15 +274,29 @@
     host.addEventListener("keydown", onKeyDown);
     window.addEventListener("beforeunload", onBeforeUnload);
 
-    ui = { shadow, img, shot, mcanvas, sel, gridBtn, gridOpts, rects, cropBtn, applyBtn, acts, resetBtn, copyBtn, list, empty, status, saveBtn, cancelBtn, crop: null };
+    ui = { shadow, img, shot, mcanvas, sel, gridBtn, gridOpts, rects, cropBtn, applyBtn, acts, resetBtn, copyBtn, list, empty, status, saveBtn, copyMainBtn, cancelBtn, crop: null };
     document.documentElement.append(host);
     window.addEventListener("keydown", onModifier, true);
     window.addEventListener("keyup", onModifier, true);
     window.addEventListener("blur", onModifierReset);
     ui.resizeObs = new ResizeObserver(() => paintOverlay());
     ui.resizeObs.observe(img);
-    saveBtn.focus();
+    copyMainBtn.focus();
+    // Saving to a server is optional: the buttons follow the login state.
+    chrome.runtime
+      .sendMessage({ type: "tt-get-state" })
+      .then((res) => applyServerMode(!!(res && res.ok && res.loggedIn)))
+      .catch(() => applyServerMode(false));
     renderPins();
+  }
+
+  // Logged in: "Сохранить" (to the server) next to the copy button.
+  // Not logged in: local mode, only copying.
+  function applyServerMode(loggedIn) {
+    if (!ui) return;
+    ui.saveBtn.hidden = !loggedIn;
+    ui.copyMainBtn.className = loggedIn ? "ghost" : "primary";
+    if (loggedIn) ui.saveBtn.focus();
   }
 
   function hasWork() {
@@ -1155,9 +1170,21 @@
         new ClipboardItem({ "image/png": blob }),
       ]);
       flashCopy("done", "Скопировано: фото + текст");
+      flashMain("Скопировано ✓");
     } catch {
       flashCopy("fail", "Не удалось скопировать");
+      flashMain("Не удалось скопировать");
     }
+  }
+
+  function flashMain(text) {
+    const b = ui && ui.copyMainBtn;
+    if (!b) return;
+    b.textContent = text;
+    clearTimeout(b._t);
+    b._t = setTimeout(() => {
+      if (ui) b.textContent = "Копировать";
+    }, 1800);
   }
 
   function dataUrlBytes(dataUrl) {
