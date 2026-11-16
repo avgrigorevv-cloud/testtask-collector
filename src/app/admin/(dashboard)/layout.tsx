@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { AdminTabs } from "@/components/admin/AdminTabs";
 import { LogoutButton } from "@/components/admin/LogoutButton";
 
 export default function AdminDashboardLayout({
@@ -26,18 +27,8 @@ export default function AdminDashboardLayout({
           <Link href="/admin" className="font-semibold text-foreground tracking-tight">
             Тестовые задания <span className="text-muted">·</span> Admin panel
           </Link>
-          <nav className="flex items-center gap-5">
-            <Link href="/admin" className="text-sm font-medium text-slate-600 hover:text-foreground">
-              Шаблоны
-            </Link>
-            <Link
-              href="/admin/captures"
-              className="text-sm font-medium text-slate-600 hover:text-foreground"
-            >
-              Скриншоты
-            </Link>
-            <LogoutButton />
-          </nav>
+          <AdminTabs />
+          <LogoutButton />
         </div>
       </header>
       <main className="relative max-w-6xl mx-auto px-6 py-8">{children}</main>

@@ -111,14 +111,26 @@ export function adminFilePath(filename: string): string {
 }
 
 // Screenshots sent by the browser extension — private, one folder per
-// extension login: uploads/captures/<userId>/<uuid>.png. Served only through
+// extension login: uploads/captures/<userId>/<YYYY-MM-DD>/<uuid>.png. Served only through
 // src/app/api/files/captures/[id]/route.ts (admin session or the owner's
 // extension bearer token).
 const MAX_CAPTURE_BYTES = 25 * 1024 * 1024; // 25MB, same as other uploads
 const PNG_SIGNATURE = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
 const JPEG_SIGNATURE = Buffer.from([0xff, 0xd8, 0xff]);
 
-export async function saveCaptureImage(file: File, userId: string): Promise<string> {
+// Local calendar day, used both as the on-disk subfolder and for grouping in
+// the admin UI, so the two always agree.
+export function captureDayKey(date: Date = new Date()): string {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+}
+
+// Returns the path relative to the user's folder: "<day>/<uuid>.png".
+export async function saveCaptureImage(
+  file: File,
+  userId: string,
+  day: string = captureDayKey()
+): Promise<string> {
   if (file.size > MAX_CAPTURE_BYTES) {
     throw new UploadRejectedError("Скриншот слишком большой (максимум 25 МБ)");
   }
@@ -129,11 +141,12 @@ export async function saveCaptureImage(file: File, userId: string): Promise<stri
   if (buffer.length >= 8 && buffer.subarray(0, 8).equals(PNG_SIGNATURE)) ext = ".png";
   else if (buffer.length >= 3 && buffer.subarray(0, 3).equals(JPEG_SIGNATURE)) ext = ".jpg";
   else throw new UploadRejectedError("Скриншот должен быть в формате PNG или JPEG");
-  const dir = path.join(UPLOAD_ROOT, "captures", userId);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) throw new Error("invalid capture day");
+  const dir = path.join(UPLOAD_ROOT, "captures", userId, day);
   await mkdir(dir, { recursive: true });
   const safeName = `${randomUUID()}${ext}`;
   await writeFile(path.join(dir, safeName), buffer);
-  return safeName;
+  return `${day}/${safeName}`;
 }
 
 export function captureFilePath(userId: string, filename: string): string {

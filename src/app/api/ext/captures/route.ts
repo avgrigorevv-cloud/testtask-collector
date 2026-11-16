@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { getExtUser } from "@/lib/extAuth";
 import { unlink } from "fs/promises";
 import type { Pin } from "@/lib/blocks";
-import { captureFilePath, saveCaptureImage, UploadRejectedError } from "@/lib/storage";
+import { captureDayKey, captureFilePath, saveCaptureImage, UploadRejectedError } from "@/lib/storage";
 import { MAX_NOTE_LENGTH, MAX_PAGE_URL_LENGTH, optionalInt, optionalText, parsePins } from "@/lib/captures";
 import { isRateLimited } from "@/lib/rateLimit";
 
@@ -49,12 +49,13 @@ export const POST = withExtCors(async function postHandler(request: Request) {
   // Files written so far; removed again if the request fails half-way, so no
   // file is left on disk without a database row.
   const written: string[] = [];
+  const day = captureDayKey();
   try {
-    const imageFile = await saveCaptureImage(image, user.id);
+    const imageFile = await saveCaptureImage(image, user.id, day);
     written.push(imageFile);
     let annotatedFile: string | null = null;
     if (annotated instanceof File && annotated.size > 0) {
-      annotatedFile = await saveCaptureImage(annotated, user.id);
+      annotatedFile = await saveCaptureImage(annotated, user.id, day);
       written.push(annotatedFile);
     }
     const capture = await createCaptureRow(formData, user.id, imageFile, annotatedFile, pageUrl, pins);

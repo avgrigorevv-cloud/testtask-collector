@@ -28,6 +28,33 @@
       display: block; max-width: 100%; max-height: calc(100vh - 48px);
       user-select: none; -webkit-user-drag: none;
     }
+    .wrap { display: flex; flex-direction: column; align-items: center; gap: 12px; max-width: 100%; }
+    .tools {
+      display: flex; flex-wrap: wrap; gap: 6px; align-items: center; padding: 6px;
+      border-radius: 999px; background: rgba(255,255,255,.95); box-shadow: 0 4px 16px rgba(0,0,0,.3);
+    }
+    .tool {
+      padding: 6px 14px; border: 0; border-radius: 999px; background: transparent;
+      font: 500 13px system-ui, sans-serif; color: #6b6f85; cursor: pointer;
+    }
+    .tool:hover { color: #0d0f1e; }
+    .tool.on { background: #eef0fa; color: #4f46e5; box-shadow: inset 0 0 0 1px #c7cbf0; }
+    .tool[hidden] { display: none; }
+    .grid {
+      position: absolute; inset: 0; pointer-events: none; display: none;
+      background-image:
+        linear-gradient(to right, rgba(79,70,229,.55) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(79,70,229,.55) 1px, transparent 1px),
+        linear-gradient(to right, rgba(255,255,255,.35) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255,255,255,.35) 1px, transparent 1px);
+      background-size: 10% 10%, 10% 10%, 2% 2%, 2% 2%;
+    }
+    .grid.on { display: block; }
+    .shot.cropping { cursor: cell; }
+    .sel {
+      position: absolute; display: none; border: 2px dashed #fff; pointer-events: none;
+      box-shadow: 0 0 0 9999px rgba(13,15,30,.55), 0 0 0 1px #4f46e5;
+    }
     .pin {
       position: absolute; width: 24px; height: 24px; transform: translate(-50%, -50%);
       border-radius: 50%; background: #ef4444; color: #fff; font: 600 12px/24px system-ui, sans-serif;
@@ -88,7 +115,9 @@
   // fit in one extension message (~64 MB as base64). Bigger PNGs -> JPEG.
   const MAX_IMAGE_BYTES = 15 * 1024 * 1024;
 
-  let state = null; // { dataUrl, pins: [{x, y, comment}], activeIndex }
+  const MIN_CROP = 3; // percent; smaller selections are ignored
+
+  let state = null; // { dataUrl, originalDataUrl, pins: [{x, y, comment}], activeIndex, cropping, grid }
   let host = null;
   let ui = null;
 
@@ -109,13 +138,20 @@
   }
 
   function open(dataUrl) {
-    state = { dataUrl, pins: [], activeIndex: -1, closeArmed: false };
+    state = { dataUrl, originalDataUrl: dataUrl, pins: [], activeIndex: -1, closeArmed: false, cropping: false, grid: false };
     host = document.createElement("tt-capture-overlay");
     const shadow = host.attachShadow({ mode: "closed" });
     shadow.append(el("style", { text: STYLE }));
 
     const img = el("img", { src: dataUrl, alt: "Скриншот", draggable: "false" });
-    const shot = el("div", { class: "shot", onclick: onShotClick }, [img]);
+    const grid = el("div", { class: "grid" });
+    const sel = el("div", { class: "sel" });
+    const shot = el("div", { class: "shot", onclick: onShotClick, onpointerdown: onCropDown }, [img, grid, sel]);
+    const gridBtn = el("button", { class: "tool", text: "Сетка", title: "Показать сетку 10% (крупная) и 2% (мелкая)", onclick: toggleGrid });
+    const cropBtn = el("button", { class: "tool", text: "Обрезать", title: "Выделите область, которую нужно оставить", onclick: toggleCrop });
+    const applyBtn = el("button", { class: "tool", text: "Применить", hidden: "", onclick: applyCrop });
+    const resetBtn = el("button", { class: "tool", text: "Вернуть исходный", hidden: "", onclick: resetCrop });
+    const tools = el("div", { class: "tools" }, [gridBtn, cropBtn, applyBtn, resetBtn]);
     const list = el("ul");
     const empty = el("p", { class: "empty", text: "Кликните по скриншоту, чтобы поставить метку." });
     const note = el("textarea", {
@@ -129,7 +165,7 @@
 
     // tabindex keeps focus inside the editor when clicking empty areas, so Esc still works
     const root = el("div", { class: "root", tabindex: "-1" }, [
-      el("div", { class: "stage" }, [shot]),
+      el("div", { class: "stage" }, [el("div", { class: "wrap" }, [tools, shot])]),
       el("aside", { class: "panel" }, [
         el("div", { class: "head" }, [
           el("p", { class: "title", text: "Метки на скриншоте" }),
@@ -154,14 +190,17 @@
     host.addEventListener("keydown", onKeyDown);
     window.addEventListener("beforeunload", onBeforeUnload);
 
-    ui = { shadow, img, shot, list, empty, note, status, saveBtn, cancelBtn };
+    ui = { shadow, img, shot, grid, sel, gridBtn, cropBtn, applyBtn, resetBtn, list, empty, note, status, saveBtn, cancelBtn, crop: null };
     document.documentElement.append(host);
     saveBtn.focus();
     renderPins();
   }
 
   function hasWork() {
-    return !!state && (state.pins.length > 0 || ui.note.value.trim().length > 0);
+    return (
+      !!state &&
+      (state.pins.length > 0 || ui.note.value.trim().length > 0 || state.dataUrl !== state.originalDataUrl)
+    );
   }
 
   function onBeforeUnload(e) {
@@ -202,7 +241,131 @@
     requestClose("Нажмите Esc еще раз, чтобы закрыть без сохранения");
   }
 
+  function toggleGrid() {
+    state.grid = !state.grid;
+    ui.grid.classList.toggle("on", state.grid);
+    ui.gridBtn.classList.toggle("on", state.grid);
+  }
+
+  function toggleCrop() {
+    state.cropping = !state.cropping;
+    ui.crop = null;
+    ui.sel.style.display = "none";
+    ui.shot.classList.toggle("cropping", state.cropping);
+    ui.cropBtn.classList.toggle("on", state.cropping);
+    ui.applyBtn.hidden = true;
+    setStatus(state.cropping ? "Выделите мышью область, которую нужно оставить, затем «Применить»" : "");
+  }
+
+  function pointPercent(e) {
+    const rect = ui.img.getBoundingClientRect();
+    const clamp = (v) => Math.min(100, Math.max(0, v));
+    return {
+      x: clamp(((e.clientX - rect.left) / rect.width) * 100),
+      y: clamp(((e.clientY - rect.top) / rect.height) * 100),
+    };
+  }
+
+  function onCropDown(e) {
+    if (!state.cropping || e.button !== 0) return;
+    e.preventDefault();
+    const start = pointPercent(e);
+    ui.crop = { x1: start.x, y1: start.y, x2: start.x, y2: start.y };
+    ui.applyBtn.hidden = true;
+    const move = (ev) => {
+      const p = pointPercent(ev);
+      ui.crop.x2 = p.x;
+      ui.crop.y2 = p.y;
+      drawSel();
+    };
+    const up = () => {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+      const c = cropRect();
+      const ok = c && c.w >= MIN_CROP && c.h >= MIN_CROP;
+      ui.applyBtn.hidden = !ok;
+      if (!ok) {
+        ui.crop = null;
+        ui.sel.style.display = "none";
+      }
+    };
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
+  }
+
+  function cropRect() {
+    if (!ui.crop) return null;
+    const { x1, y1, x2, y2 } = ui.crop;
+    return { x: Math.min(x1, x2), y: Math.min(y1, y2), w: Math.abs(x2 - x1), h: Math.abs(y2 - y1) };
+  }
+
+  function drawSel() {
+    const c = cropRect();
+    if (!c) return;
+    Object.assign(ui.sel.style, {
+      display: "block",
+      left: c.x + "%",
+      top: c.y + "%",
+      width: c.w + "%",
+      height: c.h + "%",
+    });
+  }
+
+  async function setImage(dataUrl) {
+    state.dataUrl = dataUrl;
+    ui.img.src = dataUrl;
+    try {
+      await ui.img.decode();
+    } catch {
+      // the image is already a valid data URL; decode() failing is not fatal
+    }
+  }
+
+  async function applyCrop() {
+    const c = cropRect();
+    if (!c || c.w < MIN_CROP || c.h < MIN_CROP) return;
+    const image = new Image();
+    image.src = state.dataUrl;
+    await image.decode();
+    const sx = Math.round((c.x / 100) * image.naturalWidth);
+    const sy = Math.round((c.y / 100) * image.naturalHeight);
+    const sw = Math.max(1, Math.round((c.w / 100) * image.naturalWidth));
+    const sh = Math.max(1, Math.round((c.h / 100) * image.naturalHeight));
+    const canvas = document.createElement("canvas");
+    canvas.width = sw;
+    canvas.height = sh;
+    canvas.getContext("2d").drawImage(image, sx, sy, sw, sh, 0, 0, sw, sh);
+
+    // Pins keep their place on the picture: re-map the ones inside the
+    // selection, drop the ones that fall outside.
+    const before = state.pins.length;
+    state.pins = state.pins
+      .filter((p) => p.x >= c.x && p.x <= c.x + c.w && p.y >= c.y && p.y <= c.y + c.h)
+      .map((p) => ({ ...p, x: ((p.x - c.x) / c.w) * 100, y: ((p.y - c.y) / c.h) * 100 }));
+    const dropped = before - state.pins.length;
+    state.activeIndex = -1;
+
+    await setImage(canvas.toDataURL("image/png"));
+    toggleCrop();
+    ui.resetBtn.hidden = false;
+    renderPins();
+    setStatus(dropped ? `Обрезано. Удалено меток вне области: ${dropped}` : "Обрезано", "ok");
+  }
+
+  async function resetCrop() {
+    if (state.dataUrl === state.originalDataUrl) return;
+    if (state.pins.length && !confirm("Вернуть исходный скриншот? Метки будут удалены.")) return;
+    state.pins = [];
+    state.activeIndex = -1;
+    await setImage(state.originalDataUrl);
+    if (state.cropping) toggleCrop();
+    ui.resetBtn.hidden = true;
+    renderPins();
+    setStatus("");
+  }
+
   function onShotClick(e) {
+    if (state.cropping) return;
     if (e.target.classList.contains("pin")) {
       focusPin(Number(e.target.dataset.index));
       return;
@@ -364,7 +527,7 @@
           viewportHeight: window.innerHeight,
         },
       });
-    } catch (e) {
+    } catch {
       // Only an extension reload/update really requires a page reload; any
       // other failure is retryable with the editor still open.
       const reloaded = !(chrome.runtime && chrome.runtime.id);

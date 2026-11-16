@@ -4,8 +4,18 @@ import { prisma } from "@/lib/prisma";
 import { BackLink } from "@/components/admin/BackLink";
 import { ChangeExtUserPassword } from "@/components/admin/ChangeExtUserPassword";
 import { pluralize } from "@/lib/captures";
+import { captureDayKey } from "@/lib/storage";
 
 export const dynamic = "force-dynamic";
+
+function formatDay(day: string): string {
+  const [y, m, d] = day.split("-").map(Number);
+  return new Date(y, m - 1, d).toLocaleDateString("ru-RU", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+}
 
 export default async function CaptureFolderPage({
   params,
@@ -18,6 +28,14 @@ export default async function CaptureFolderPage({
     include: { captures: { orderBy: { createdAt: "desc" } } },
   });
   if (!user) notFound();
+
+  // One group per calendar day, newest first (captures are already sorted).
+  const byDay = new Map<string, typeof user.captures>();
+  for (const c of user.captures) {
+    const key = captureDayKey(c.createdAt);
+    byDay.set(key, [...(byDay.get(key) ?? []), c]);
+  }
+  const groups = [...byDay.entries()];
 
   return (
     <div className="space-y-6">
@@ -40,8 +58,14 @@ export default async function CaptureFolderPage({
           В папке пока пусто.
         </div>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {user.captures.map((c) => {
+        <div className="space-y-8">
+        {groups.map(([day, items]) => (
+          <div key={day} className="space-y-3">
+            <h2 className="text-sm font-semibold text-foreground">
+              {formatDay(day)} <span className="font-normal text-muted">· {items.length}</span>
+            </h2>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {items.map((c) => {
             const pinsCount = (JSON.parse(c.pins) as unknown[]).length;
             return (
               <Link
@@ -71,6 +95,9 @@ export default async function CaptureFolderPage({
               </Link>
             );
           })}
+        </div>
+          </div>
+        ))}
         </div>
       )}
     </div>

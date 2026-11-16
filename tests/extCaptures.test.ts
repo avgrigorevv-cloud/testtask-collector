@@ -193,6 +193,8 @@ test("JPEG screenshot is accepted and served as image/jpeg", async () => {
   const { id } = await res.json();
   const capture = await prisma.capture.findUniqueOrThrow({ where: { id } });
   assert.ok(capture.imageFile.endsWith(".jpg"));
+  // stored in a per-day subfolder: <YYYY-MM-DD>/<uuid>.jpg
+  assert.match(capture.imageFile, /^\d{4}-\d{2}-\d{2}\/[^/]+\.jpg$/);
   const file = await getCaptureFile(
     new NextRequest(`http://localhost/api/files/captures/${id}`, { headers: { Authorization: `Bearer ${token}` } }),
     { params: Promise.resolve({ id }) }
