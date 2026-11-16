@@ -109,3 +109,33 @@ export function submissionFilePath(submissionId: string, filename: string): stri
 export function adminFilePath(filename: string): string {
   return path.join(UPLOAD_ROOT, "admin", filename);
 }
+
+// Screenshots sent by the browser extension — private, one folder per
+// extension login: uploads/captures/<userId>/<uuid>.png. Served only through
+// src/app/api/files/captures/[id]/route.ts (admin session or the owner's
+// extension bearer token).
+const MAX_CAPTURE_BYTES = 25 * 1024 * 1024; // 25MB, same as other uploads
+const PNG_SIGNATURE = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+const JPEG_SIGNATURE = Buffer.from([0xff, 0xd8, 0xff]);
+
+export async function saveCaptureImage(file: File, userId: string): Promise<string> {
+  if (file.size > MAX_CAPTURE_BYTES) {
+    throw new UploadRejectedError("Скриншот слишком большой (максимум 25 МБ)");
+  }
+  const buffer = Buffer.from(await file.arrayBuffer());
+  // PNG (what chrome.tabs.captureVisibleTab produces) or JPEG (the extension
+  // re-encodes very large screenshots). Check magic bytes, not the name/type.
+  let ext: ".png" | ".jpg";
+  if (buffer.length >= 8 && buffer.subarray(0, 8).equals(PNG_SIGNATURE)) ext = ".png";
+  else if (buffer.length >= 3 && buffer.subarray(0, 3).equals(JPEG_SIGNATURE)) ext = ".jpg";
+  else throw new UploadRejectedError("Скриншот должен быть в формате PNG или JPEG");
+  const dir = path.join(UPLOAD_ROOT, "captures", userId);
+  await mkdir(dir, { recursive: true });
+  const safeName = `${randomUUID()}${ext}`;
+  await writeFile(path.join(dir, safeName), buffer);
+  return safeName;
+}
+
+export function captureFilePath(userId: string, filename: string): string {
+  return path.join(UPLOAD_ROOT, "captures", userId, filename);
+}

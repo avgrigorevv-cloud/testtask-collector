@@ -40,6 +40,7 @@ jobs:
             -v testtask-db:/app/prisma/data \
             -v testtask-uploads-submissions:/app/uploads/submissions \
             -v testtask-uploads-admin:/app/uploads/admin \
+            -v testtask-uploads-captures:/app/uploads/captures \
             --restart unless-stopped \
             --name testtask-collector \
             testtask-collector:${{ github.sha }}

@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+  <header>
+    <img src="icons/32.png" alt="" width="20" height="20" />
+    <span>Скриншоты с метками</span>
+  </header>
+
+  <section id="view-loading"><p class="muted">Загрузка...</p></section>
+
+  <form id="view-login" hidden>
+    <p class="hint" id="login-hint">Войдите, чтобы скриншоты сохранялись в вашу папку.</p>
+    <label>Адрес сервиса
+      <input id="server" type="url" required placeholder="https://task.uxteam.space" />
+    </label>
+    <label>Логин
+      <input id="login" autocomplete="username" required />
+    </label>
+    <label>Пароль
+      <input id="password" type="password" autocomplete="current-password" required />
+    </label>
+    <button type="submit" id="login-btn" class="primary">Войти</button>
+  </form>
+
+  <section id="view-main" hidden>
+    <p class="who">Вы вошли как <b id="who"></b></p>
+    <button id="capture-btn" class="primary">Сделать скриншот</button>
+    <p class="muted small">Или сочетание клавиш <kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>S</kbd></p>
+    <button id="logout-btn" class="link">Выйти</button>
+  </section>
+
+  <p id="error" class="error" hidden></p>
+  <script src="popup.js"></script>
+</body>
+</html>

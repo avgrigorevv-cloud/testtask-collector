@@ -44,3 +44,46 @@ model Answer {
 
   @@unique([submissionId, blockId])
 }
+
+// --- Browser extension: screenshot capture with pins ---------------------
+// A login used by the browser extension. Every login owns its own "folder"
+// of captures (uploads/captures/<userId>/ on disk). Logins are created by
+// the admin in /admin/captures — there is no self-registration.
+model ExtUser {
+  id           String       @id @default(cuid())
+  login        String       @unique
+  passwordHash String
+  createdAt    DateTime     @default(now())
+  sessions     ExtSession[]
+  captures     Capture[]
+}
+
+// Bearer session for the extension. Only the sha256 of the token is stored,
+// the raw token lives in chrome.storage on the user's machine.
+model ExtSession {
+  id        String   @id @default(cuid())
+  tokenHash String   @unique
+  userId    String
+  user      ExtUser  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+}
+
+model Capture {
+  id             String   @id @default(cuid())
+  userId         String
+  user           ExtUser  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  imageFile      String
+  // Same screenshot with numbered pins drawn on it (rendered by the extension)
+  annotatedFile  String?
+  pageUrl        String
+  pageTitle      String?
+  note           String?
+  // JSON: Pin[] — same shape as ImageAnnotateAnswerValue.pins (imageIndex is always 0)
+  pins           String
+  viewportWidth  Int?
+  viewportHeight Int?
+  createdAt      DateTime @default(now())
+
+  @@index([userId, createdAt])
+}

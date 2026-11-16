@@ -39,7 +39,7 @@ COPY --from=builder /app/prisma.config.ts ./prisma.config.ts
 ENV NODE_ENV=production
 EXPOSE 3000
 
-# prisma/data/dev.db and uploads/{submissions,admin}/ must be on mounted volumes —
+# prisma/data/dev.db and uploads/{submissions,admin,captures}/ must be on mounted volumes —
 # see README "Деплой". Both uploads dirs live outside public/ and are served through
 # route handlers (src/app/api/files/**) instead of Next's static public/ serving,
 # since `next start` doesn't reliably pick up files written into public/ after the
