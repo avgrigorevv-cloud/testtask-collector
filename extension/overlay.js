@@ -40,6 +40,20 @@
     .tool:hover { color: #0d0f1e; }
     .tool.on { background: #eef0fa; color: #4f46e5; box-shadow: inset 0 0 0 1px #c7cbf0; }
     .tool[hidden] { display: none; }
+    .tool.icon {
+      position: relative; width: 34px; height: 30px; padding: 0; display: inline-flex;
+      align-items: center; justify-content: center;
+    }
+    .tool.icon svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .tool.icon::after {
+      content: attr(data-tip); position: absolute; bottom: calc(100% + 10px); left: 50%;
+      transform: translateX(-50%); padding: 6px 12px; border-radius: 10px; white-space: nowrap;
+      background: #26283a; color: #fff; font: 500 13px system-ui, sans-serif;
+      opacity: 0; pointer-events: none; transition: opacity .12s;
+    }
+    .tool.icon:hover::after, .tool.icon.done::after { opacity: 1; }
+    .tool.icon.done { color: #16a34a; }
+    .tool.icon.fail { color: #dc2626; }
     .acts { align-self: flex-end; display: flex; gap: 10px; }
     .acts[hidden], .round[hidden] { display: none; }
     .round {
@@ -126,6 +140,10 @@
   // fit in one extension message (~64 MB as base64). Bigger PNGs -> JPEG.
   const MAX_IMAGE_BYTES = 15 * 1024 * 1024;
 
+  const COPY_ICON =
+    '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2.5"/><path d="M15 9V6.5A2.5 2.5 0 0 0 12.5 4h-6A2.5 2.5 0 0 0 4 6.5v6A2.5 2.5 0 0 0 6.5 15H9"/></svg>';
+  const DONE_ICON =
+    '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
   const MIN_CROP = 3; // percent; smaller selections are ignored
 
   let state = null; // { dataUrl, originalDataUrl, pins: [{x, y, comment}], activeIndex, cropping, grid }
@@ -164,7 +182,9 @@
     const cancelCropBtn = el("button", { class: "round no", text: "✕", title: "Отменить обрезку", "aria-label": "Отменить обрезку", onclick: toggleCrop });
     const acts = el("div", { class: "acts", hidden: "" }, [applyBtn, cancelCropBtn]);
     const resetBtn = el("button", { class: "tool", text: "Вернуть исходный", hidden: "", onclick: resetCrop });
-    const tools = el("div", { class: "tools" }, [gridBtn, cropBtn, resetBtn]);
+    const copyBtn = el("button", { class: "tool icon", "data-tip": "Копировать", "aria-label": "Копировать в буфер обмена", onclick: copyToClipboard });
+    copyBtn.innerHTML = COPY_ICON; // static markup, no page data
+    const tools = el("div", { class: "tools" }, [gridBtn, cropBtn, resetBtn, copyBtn]);
     const list = el("ul");
     const empty = el("p", { class: "empty", text: "Кликните по скриншоту, чтобы поставить метку." });
     const note = el("textarea", {
@@ -203,7 +223,7 @@
     host.addEventListener("keydown", onKeyDown);
     window.addEventListener("beforeunload", onBeforeUnload);
 
-    ui = { shadow, img, shot, grid, sel, gridBtn, cropBtn, applyBtn, acts, resetBtn, list, empty, note, status, saveBtn, cancelBtn, crop: null };
+    ui = { shadow, img, shot, grid, sel, gridBtn, cropBtn, applyBtn, acts, resetBtn, copyBtn, list, empty, note, status, saveBtn, cancelBtn, crop: null };
     document.documentElement.append(host);
     saveBtn.focus();
     renderPins();
@@ -465,8 +485,7 @@
 
   // Same screenshot with the numbered pins drawn on it, so a downloaded PNG
   // is readable without the admin UI.
-  async function renderAnnotated() {
-    if (!state.pins.length) return null;
+  async function drawBase(withPins) {
     const image = new Image();
     image.src = state.dataUrl;
     await image.decode();
@@ -475,6 +494,7 @@
     canvas.height = image.naturalHeight;
     const ctx = canvas.getContext("2d");
     ctx.drawImage(image, 0, 0);
+    if (!withPins) return canvas;
     const scale = image.naturalWidth / Math.max(1, ui.img.clientWidth);
     const r = 12 * scale;
     state.pins.forEach((pin, i) => {
@@ -494,7 +514,130 @@
       ctx.textBaseline = "middle";
       ctx.fillText(String(i + 1), cx, cy + 0.5 * scale);
     });
+    return canvas;
+  }
+
+  async function renderAnnotated() {
+    if (!state.pins.length) return null;
+    const canvas = await drawBase(true);
     return fitSize(canvas.toDataURL("image/png"));
+  }
+
+  // Screenshot + pins + a numbered list of the comments under it, so a single
+  // paste carries everything.
+  async function renderComposite() {
+    const base = await drawBase(true);
+    const lines = state.pins
+      .map((p, i) => ({ n: i + 1, text: p.comment.trim() }))
+      .filter((l) => l.text);
+    const noteText = ui.note.value.trim();
+    if (!lines.length && !noteText) return base;
+
+    const w = base.width;
+    const fs = Math.max(16, Math.round(w / 70));
+    const pad = fs * 1.2;
+    const lineH = fs * 1.4;
+    const measure = document.createElement("canvas").getContext("2d");
+    measure.font = `${fs}px system-ui, sans-serif`;
+    const textW = w - pad * 2 - fs * 2.2;
+    const wrap = (text) => {
+      const out = [];
+      for (const para of text.split("\n")) {
+        let line = "";
+        for (const word of para.split(/\s+/)) {
+          const test = line ? line + " " + word : word;
+          if (line && measure.measureText(test).width > textW) {
+            out.push(line);
+            line = word;
+          } else line = test;
+        }
+        out.push(line);
+      }
+      return out;
+    };
+    const blocks = lines.map((l) => ({ n: l.n, rows: wrap(l.text) }));
+    const noteRows = noteText ? wrap(noteText) : [];
+    const rowsTotal =
+      blocks.reduce((sum, b) => sum + b.rows.length, 0) + noteRows.length + (noteRows.length && blocks.length ? 1 : 0);
+    const footH = pad * 2 + rowsTotal * lineH + (blocks.length + (noteRows.length ? 1 : 0)) * fs * 0.4;
+
+    const out = document.createElement("canvas");
+    out.width = w;
+    out.height = base.height + Math.ceil(footH);
+    const ctx = out.getContext("2d");
+    ctx.drawImage(base, 0, 0);
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, base.height, w, out.height - base.height);
+    ctx.textBaseline = "top";
+    let y = base.height + pad;
+    for (const b of blocks) {
+      ctx.beginPath();
+      ctx.arc(pad + fs * 0.8, y + lineH / 2, fs * 0.8, 0, Math.PI * 2);
+      ctx.fillStyle = "#ef4444";
+      ctx.fill();
+      ctx.fillStyle = "#ffffff";
+      ctx.font = `600 ${Math.round(fs * 0.85)}px system-ui, sans-serif`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(String(b.n), pad + fs * 0.8, y + lineH / 2 + 1);
+      ctx.fillStyle = "#0d0f1e";
+      ctx.font = `${fs}px system-ui, sans-serif`;
+      ctx.textAlign = "left";
+      ctx.textBaseline = "top";
+      b.rows.forEach((row, i) => ctx.fillText(row, pad + fs * 2.2, y + i * lineH + (lineH - fs) / 2));
+      y += b.rows.length * lineH + fs * 0.4;
+    }
+    if (noteRows.length) {
+      if (blocks.length) y += lineH;
+      ctx.fillStyle = "#6b6f85";
+      ctx.font = `italic ${fs}px system-ui, sans-serif`;
+      ctx.textAlign = "left";
+      noteRows.forEach((row, i) => ctx.fillText(row, pad, y + i * lineH + (lineH - fs) / 2));
+    }
+    return out;
+  }
+
+  function flashCopy(kind, tip) {
+    const btn = ui.copyBtn;
+    btn.dataset.tip = tip;
+    btn.classList.remove("done", "fail");
+    btn.classList.add(kind);
+    if (kind === "done") btn.innerHTML = DONE_ICON;
+    clearTimeout(btn._t);
+    btn._t = setTimeout(() => {
+      btn.classList.remove("done", "fail");
+      btn.dataset.tip = "Копировать";
+      btn.innerHTML = COPY_ICON;
+    }, 1800);
+  }
+
+  async function copyToClipboard() {
+    if (!state) return;
+    try {
+      const canvas = await renderComposite();
+      // The Promise is passed straight to ClipboardItem so the write still
+      // counts as made inside the click (user activation).
+      const text = [
+        document.title,
+        location.href,
+        ...state.pins.map((p, i) => `${i + 1}. ${p.comment.trim()}`),
+        ui.note.value.trim(),
+      ]
+        .filter(Boolean)
+        .join("\n");
+      const blob = await new Promise((resolve, reject) =>
+        canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("toBlob"))), "image/png")
+      );
+      await navigator.clipboard.write([
+        new ClipboardItem({
+          "image/png": blob,
+          "text/plain": new Blob([text], { type: "text/plain" }),
+        }),
+      ]);
+      flashCopy("done", "Скопировано");
+    } catch {
+      flashCopy("fail", "Не удалось скопировать");
+    }
   }
 
   function dataUrlBytes(dataUrl) {
