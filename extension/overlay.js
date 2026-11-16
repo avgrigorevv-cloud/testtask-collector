@@ -142,8 +142,6 @@
 
   const COPY_ICON =
     '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2.5"/><path d="M15 9V6.5A2.5 2.5 0 0 0 12.5 4h-6A2.5 2.5 0 0 0 4 6.5v6A2.5 2.5 0 0 0 6.5 15H9"/></svg>';
-  const TEXT_ICON =
-    '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h14M5 12h14M5 17h9"/></svg>';
   const DONE_ICON =
     '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
   const MIN_CROP = 3; // percent; smaller selections are ignored
@@ -184,11 +182,9 @@
     const cancelCropBtn = el("button", { class: "round no", text: "✕", title: "Отменить обрезку", "aria-label": "Отменить обрезку", onclick: toggleCrop });
     const acts = el("div", { class: "acts", hidden: "" }, [applyBtn, cancelCropBtn]);
     const resetBtn = el("button", { class: "tool", text: "Вернуть исходный", hidden: "", onclick: resetCrop });
-    const copyBtn = el("button", { class: "tool icon", "data-tip": "Копировать картинку", "aria-label": "Копировать картинку в буфер обмена", onclick: copyToClipboard });
+    const copyBtn = el("button", { class: "tool icon", "data-tip": "Копировать фото + текст", "aria-label": "Копировать скриншот с комментариями в буфер обмена", onclick: copyToClipboard });
     copyBtn.innerHTML = COPY_ICON; // static markup, no page data
-    const copyTextBtn = el("button", { class: "tool icon", "data-tip": "Копировать текст", "aria-label": "Копировать текст комментариев", onclick: copyTextToClipboard });
-    copyTextBtn.innerHTML = TEXT_ICON;
-    const tools = el("div", { class: "tools" }, [gridBtn, cropBtn, resetBtn, copyBtn, copyTextBtn]);
+    const tools = el("div", { class: "tools" }, [gridBtn, cropBtn, resetBtn, copyBtn]);
     const list = el("ul");
     const empty = el("p", { class: "empty", text: "Кликните по скриншоту, чтобы поставить метку." });
     const note = el("textarea", {
@@ -227,7 +223,7 @@
     host.addEventListener("keydown", onKeyDown);
     window.addEventListener("beforeunload", onBeforeUnload);
 
-    ui = { shadow, img, shot, grid, sel, gridBtn, cropBtn, applyBtn, acts, resetBtn, copyBtn, copyTextBtn, list, empty, note, status, saveBtn, cancelBtn, crop: null };
+    ui = { shadow, img, shot, grid, sel, gridBtn, cropBtn, applyBtn, acts, resetBtn, copyBtn, list, empty, note, status, saveBtn, cancelBtn, crop: null };
     document.documentElement.append(host);
     saveBtn.focus();
     renderPins();
@@ -535,7 +531,6 @@
       .map((p, i) => ({ n: i + 1, text: p.comment.trim() }))
       .filter((l) => l.text);
     const noteText = ui.note.value.trim();
-    if (!lines.length && !noteText) return base;
 
     const w = base.width;
     const fs = Math.max(16, Math.round(w / 70));
@@ -559,9 +554,16 @@
       }
       return out;
     };
+    const titleRows = wrap(document.title || "").slice(0, 2).filter(Boolean);
+    let urlText = location.href;
+    while (urlText.length > 8 && measure.measureText(urlText).width > w - pad * 2) {
+      urlText = urlText.slice(0, -2) + "…";
+    }
     const blocks = lines.map((l) => ({ n: l.n, rows: wrap(l.text) }));
     const noteRows = noteText ? wrap(noteText) : [];
+    const headRows = titleRows.length + 1;
     const rowsTotal =
+      headRows + 0.5 +
       blocks.reduce((sum, b) => sum + b.rows.length, 0) + noteRows.length + (noteRows.length && blocks.length ? 1 : 0);
     const footH = pad * 2 + rowsTotal * lineH + (blocks.length + (noteRows.length ? 1 : 0)) * fs * 0.4;
 
@@ -574,6 +576,17 @@
     ctx.fillRect(0, base.height, w, out.height - base.height);
     ctx.textBaseline = "top";
     let y = base.height + pad;
+    ctx.textAlign = "left";
+    ctx.fillStyle = "#0d0f1e";
+    ctx.font = `600 ${fs}px system-ui, sans-serif`;
+    titleRows.forEach((row) => {
+      ctx.fillText(row, pad, y + (lineH - fs) / 2);
+      y += lineH;
+    });
+    ctx.fillStyle = "#6b6f85";
+    ctx.font = `${fs}px system-ui, sans-serif`;
+    ctx.fillText(urlText, pad, y + (lineH - fs) / 2);
+    y += lineH * 1.5;
     for (const b of blocks) {
       ctx.beginPath();
       ctx.arc(pad + fs * 0.8, y + lineH / 2, fs * 0.8, 0, Math.PI * 2);
@@ -601,8 +614,8 @@
     return out;
   }
 
-  function flashCopy(btn, kind, tip) {
-    const normal = btn === ui.copyBtn ? ["Копировать картинку", COPY_ICON] : ["Копировать текст", TEXT_ICON];
+  function flashCopy(kind, tip) {
+    const btn = ui.copyBtn;
     btn.dataset.tip = tip;
     btn.classList.remove("done", "fail");
     btn.classList.add(kind);
@@ -610,30 +623,9 @@
     clearTimeout(btn._t);
     btn._t = setTimeout(() => {
       btn.classList.remove("done", "fail");
-      btn.dataset.tip = normal[0];
-      btn.innerHTML = normal[1];
+      btn.dataset.tip = "Копировать фото + текст";
+      btn.innerHTML = COPY_ICON;
     }, 1800);
-  }
-
-  // Plain text: page title, address, numbered comments, general note.
-  async function copyTextToClipboard() {
-    if (!state) return;
-    const btn = ui.copyTextBtn;
-    const text = [
-      document.title,
-      location.href,
-      "",
-      ...state.pins.map((p, i) => `${i + 1}. ${p.comment.trim()}`),
-      ui.note.value.trim() ? "\n" + ui.note.value.trim() : "",
-    ]
-      .join("\n")
-      .trim();
-    try {
-      await navigator.clipboard.writeText(text);
-      flashCopy(btn, "done", "Текст скопирован");
-    } catch {
-      flashCopy(btn, "fail", "Не удалось скопировать");
-    }
   }
 
   async function copyToClipboard() {
@@ -647,9 +639,9 @@
       await navigator.clipboard.write([
         new ClipboardItem({ "image/png": blob }),
       ]);
-      flashCopy(ui.copyBtn, "done", "Картинка скопирована");
+      flashCopy("done", "Скопировано: фото + текст");
     } catch {
-      flashCopy(ui.copyBtn, "fail", "Не удалось скопировать");
+      flashCopy("fail", "Не удалось скопировать");
     }
   }
 
