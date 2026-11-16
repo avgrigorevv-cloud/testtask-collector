@@ -1,4 +1,48 @@
-# Публикация в Chrome Web Store
+# Публикация расширения
+
+Один и тот же zip подходит для Opera, Edge и Chrome (все три на движке Chromium, манифест V3):
+`npm run pack-extension` создает `dist/screenshots-with-marks-<версия>.zip`.
+Готовый скриншот для карточки (1280×800): `store-assets/screenshot-1280x800.png`.
+
+| Магазин | Браузеры | Стоимость |
+|---|---|---|
+| Opera Add-ons | Opera, Яндекс Браузер (ставит дополнения из каталога Opera, проверьте на своей версии) | бесплатно |
+| Edge Add-ons | Edge | бесплатно |
+| Chrome Web Store | Chrome и остальные на Chromium | 5 $ разово |
+
+## Opera Add-ons (бесплатно)
+
+1. Зарегистрируйтесь на https://addons.opera.com/developer/ (аккаунт Opera, взноса нет).
+2. «Upload new extension», загрузите `dist/screenshots-with-marks-1.0.0.zip`.
+3. Заполните карточку (Opera просит описание на английском; названия полей могут слегка
+   отличаться):
+
+**Name:** Screenshots with marks
+
+**Summary:** Screenshot a page, add numbered marks, areas and spacing measurements, and copy it to the clipboard in one click.
+
+**Description:**
+Take a screenshot of the visible part of any page and annotate it right on top of the page.
+
+- Click to drop a numbered mark, drag to draw an area, and write a comment for each one.
+- Measure spacing like in developer tools: hover an element to see dotted guides and pixel distances to its parent, or Shift+click a second element to measure the gap between two elements. Hold Option/Alt to measure without leaving the marking mode.
+- Crop the frame, then reset everything with one button.
+- Copy the result to the clipboard in one click: a single image with marks, measurements and the list of comments, ready to paste into slides, docs, Figma or chat.
+
+Everything works locally in your browser, nothing is sent to the internet. Optional: save screenshots to your own self-hosted server (open source).
+
+**Category:** Developer Tools (или Productivity). **Language:** English (+ Russian).
+
+**Screenshots:** `store-assets/screenshot-1280x800.png`.
+
+**Privacy:** данные не собираются. Политика: `PRIVACY.md` (после слияния в `main`:
+https://github.com/avgrigorevv-cloud/testtask-collector/blob/main/PRIVACY.md).
+**Source code:** https://github.com/avgrigorevv-cloud/testtask-collector
+
+После одобрения у карточки будет страница с кнопкой «Add to Opera», ее же открывают
+в Яндекс Браузере. Проверка в Opera обычно занимает от нескольких часов до пары дней.
+
+## Chrome Web Store (5 $)
 
 Один раз: зарегистрируйтесь на https://chrome.google.com/webstore/devconsole (взнос 5 $),
 затем «Новый элемент» и загрузите `dist/screenshots-with-marks-<версия>.zip`
