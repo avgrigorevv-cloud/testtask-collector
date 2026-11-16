@@ -8,6 +8,8 @@ import { captureDayKey, captureFilePath, saveCaptureImage, UploadRejectedError }
 import { MAX_NOTE_LENGTH, MAX_PAGE_URL_LENGTH, optionalInt, optionalText, parsePins } from "@/lib/captures";
 import { isRateLimited } from "@/lib/rateLimit";
 
+const MAX_REQUEST_BYTES = 60 * 1024 * 1024;
+
 // Receives a screenshot from the browser extension.
 // multipart/form-data: image (PNG), annotated? (PNG with pins drawn), pins (JSON Pin[]), pageUrl, pageTitle?,
 // note?, viewportWidth?, viewportHeight?
@@ -18,6 +20,13 @@ export const POST = withExtCors(async function postHandler(request: Request) {
   }
   if (isRateLimited(`ext-capture:${user.id}`, 60, 60 * 1000)) {
     return NextResponse.json({ error: "Слишком много скриншотов, подождите минуту" }, { status: 429 });
+  }
+
+  // Refuse oversized bodies before buffering them in memory (two 25 MB images
+  // plus form fields fit comfortably under this).
+  const declared = Number(request.headers.get("content-length") ?? "0");
+  if (Number.isFinite(declared) && declared > MAX_REQUEST_BYTES) {
+    return NextResponse.json({ error: "Слишком большой запрос" }, { status: 413 });
   }
 
   let formData: FormData;

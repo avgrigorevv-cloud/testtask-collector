@@ -256,3 +256,37 @@ test("CORS: extension origin is allowed, a website origin is not", async () => {
   assert.equal(pre.status, 204);
   assert.match(pre.headers.get("Access-Control-Allow-Headers") ?? "", /Authorization/);
 });
+
+test("oversized request is rejected before it is read (413)", async () => {
+  const extra = await prisma.extUser.create({
+    data: { login: `dave-${suffix}`, passwordHash: await hashPassword(PASSWORD) },
+  });
+  userIds.push(extra.id);
+  const token = await tokenFor(extra.login);
+  const req = captureRequest(token);
+  const big = new Request(req.url, {
+    method: "POST",
+    headers: { ...Object.fromEntries(req.headers), "content-length": String(200 * 1024 * 1024) },
+    body: await req.arrayBuffer(),
+  });
+  const res = await createCapture(big);
+  assert.equal(res.status, 413);
+});
+
+test("EXT_ALLOWED_ORIGINS restricts which extension may use CORS", async () => {
+  const prev = process.env.EXT_ALLOWED_ORIGINS;
+  process.env.EXT_ALLOWED_ORIGINS = "chrome-extension://allowedextensionid";
+  try {
+    const ok = await me(
+      new Request("http://localhost/api/ext/me", { headers: { Origin: "chrome-extension://allowedextensionid" } })
+    );
+    assert.equal(ok.headers.get("Access-Control-Allow-Origin"), "chrome-extension://allowedextensionid");
+    const other = await me(
+      new Request("http://localhost/api/ext/me", { headers: { Origin: "chrome-extension://someotherextension" } })
+    );
+    assert.equal(other.headers.get("Access-Control-Allow-Origin"), null);
+  } finally {
+    if (prev === undefined) delete process.env.EXT_ALLOWED_ORIGINS;
+    else process.env.EXT_ALLOWED_ORIGINS = prev;
+  }
+});

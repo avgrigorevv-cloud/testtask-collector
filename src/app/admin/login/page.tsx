@@ -3,6 +3,7 @@
 import { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Eye, EyeOff } from "lucide-react";
+import { safeNextPath } from "@/lib/safeRedirect";
 
 function LoginForm() {
   const router = useRouter();
@@ -27,8 +28,7 @@ function LoginForm() {
       setError(data.error ?? "Не удалось войти");
       return;
     }
-    const next = searchParams.get("next") ?? "/admin";
-    router.push(next);
+    router.push(safeNextPath(searchParams.get("next")));
     router.refresh();
   }
 

@@ -11,7 +11,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const { password } = await request.json();
+  const { password } = ((await request.json().catch(() => null)) ?? {}) as { password?: unknown };
   const expectedPassword = process.env.ADMIN_PASSWORD ?? "";
 
   if (

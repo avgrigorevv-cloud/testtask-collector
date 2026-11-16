@@ -7,9 +7,21 @@ import { NextResponse } from "next/server";
 // no ambient credential a foreign origin could ride on.
 const EXTENSION_ORIGIN_RE = /^(chrome|moz)-extension:\/\/[a-z0-9-]+$/i;
 
+// Optional allowlist: EXT_ALLOWED_ORIGINS="chrome-extension://<id>,chrome-extension://<id2>".
+// Unset = any extension origin may call the API (it still needs a valid login /
+// Bearer token). Set it in production once the extension id is known.
+function originAllowed(origin: string): boolean {
+  if (!EXTENSION_ORIGIN_RE.test(origin)) return false;
+  const list = (process.env.EXT_ALLOWED_ORIGINS ?? "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+  return list.length === 0 || list.includes(origin);
+}
+
 function corsHeaders(request: Request): Record<string, string> {
   const origin = request.headers.get("origin");
-  if (!origin || !EXTENSION_ORIGIN_RE.test(origin)) return { Vary: "Origin" };
+  if (!origin || !originAllowed(origin)) return { Vary: "Origin" };
   return {
     "Access-Control-Allow-Origin": origin,
     "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
