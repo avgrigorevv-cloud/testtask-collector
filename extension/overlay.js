@@ -78,7 +78,11 @@
       font: 500 12px system-ui, sans-serif; color: #6b6f85; cursor: pointer;
     }
     .gridopts button:hover { color: #dc2626; }
-    .seg { display: flex; align-items: center; gap: 6px; margin: 0 0 12px; font-size: 12px; color: #6b6f85; }
+    .addmark {
+      width: 100%; padding: 9px 12px; margin: 0 0 14px; border: 1.5px dashed #c7cbf0; border-radius: 10px;
+      background: #f8f8fc; color: #4f46e5; font: 600 13px system-ui, sans-serif; cursor: pointer;
+    }
+    .addmark:hover { background: #eef0fa; border-color: #4f46e5; }
     .shot.areamode { cursor: cell; }
     .sel.area { border: 2px solid #ef4444; background: rgba(239,68,68,.12); box-shadow: none; }
     .areabox {
@@ -92,12 +96,21 @@
     }
     .bubble.active { border-color: #4f46e5; }
     .col { flex: 1; min-width: 0; display: grid; gap: 4px; }
-    .mode {
-      justify-self: start; padding: 2px 8px; border: 1px solid #d4d4e0; border-radius: 999px;
-      background: #fff; color: #6b6f85; font: 500 11px system-ui, sans-serif; cursor: pointer;
+    .sw {
+      justify-self: start; display: inline-flex; align-items: center; gap: 8px; padding: 0; border: 0;
+      background: none; color: #6b6f85; font: 500 12px system-ui, sans-serif; cursor: pointer;
     }
-    .mode:hover { color: #0d0f1e; }
-    .mode.on { border-color: #4f46e5; color: #4f46e5; background: #eef0fa; }
+    .sw .track {
+      position: relative; flex: none; width: 36px; height: 20px; border-radius: 999px;
+      background: #c9ccd9; transition: background .15s;
+    }
+    .sw .knob {
+      position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%;
+      background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.3); transition: left .15s;
+    }
+    .sw[aria-checked="true"] .track { background: #3b6fe0; }
+    .sw[aria-checked="true"] .knob { left: 18px; background: #e4e4e8; }
+    .sw[aria-checked="true"] { color: #0d0f1e; }
     .shot.cropping { cursor: cell; }
     .sel {
       position: absolute; display: none; border: 2px dashed #fff; pointer-events: none;
@@ -157,7 +170,7 @@
 
   const MAX_PINS = 100; // same limits as src/lib/captures.ts
   const MAX_COMMENT = 2000;
-  const MAX_NOTE = 5000;
+  const DRAG_PX = 5; // pointer travel that turns a click into an area drag
   const MAX_URL = 4000;
   // Server accepts up to 25 MB per image; keep each under 15 MB so both images
   // fit in one extension message (~64 MB as base64). Bigger PNGs -> JPEG.
@@ -174,7 +187,7 @@
   const MAX_ELEMENTS = 6000;
 
   // state: { dataUrl, originalDataUrl, pins: [{x, y, comment, w?, h?, inline?}], activeIndex, cropping,
-  //          markType: "pin"|"area" (what a new mark is), measure (tool on), measures: [{a, b}],
+  //          measure (tool toggled on), altMeasure (Option/Alt held), measures: [{a, b}],
   //          sel (first element of a pair measure), view: { x0, y0 } (CSS px at the image's top-left),
   //          cssWidth (CSS px the image width stands for), originalCssWidth }
   let state = null;
@@ -199,7 +212,7 @@
 
   function open(dataUrl) {
     state = { dataUrl, originalDataUrl: dataUrl, pins: [], activeIndex: -1, closeArmed: false, cropping: false,
-      markType: "pin", measure: false, measures: [], sel: null, hover: null,
+      measure: false, altMeasure: false, measures: [], sel: null, hover: null,
       view: { x0: 0, y0: 0 }, cssWidth: window.innerWidth, originalCssWidth: window.innerWidth,
     };
     // Geometry of the page's elements at the moment of capture (CSS px, viewport
@@ -227,15 +240,9 @@
     const copyBtn = el("button", { class: "tool icon", "data-tip": "Копировать фото + текст", "aria-label": "Копировать скриншот с комментариями в буфер обмена", onclick: copyToClipboard });
     copyBtn.innerHTML = COPY_ICON; // static markup, no page data
     const tools = el("div", { class: "tools" }, [gridBtn, cropBtn, resetBtn, copyBtn]);
-    const segPin = el("button", { class: "mode on", text: "Точка", title: "Клик по скриншоту ставит точку", onclick: () => setMarkType("pin") });
-    const segArea = el("button", { class: "mode", text: "Область", title: "Протяните рамку по элементу", onclick: () => setMarkType("area") });
+    const addBtn = el("button", { class: "addmark", text: "+ Добавить метку", title: "Добавить метку в центре скриншота (потом ее можно перетащить)", onclick: addMark });
     const list = el("ul");
-    const empty = el("p", { class: "empty", text: "Кликните по скриншоту (или протяните рамку для области), чтобы поставить метку." });
-    const note = el("textarea", {
-      placeholder: "Общий комментарий к скриншоту (необязательно)",
-      rows: "3",
-      maxlength: String(MAX_NOTE),
-    });
+    const empty = el("p", { class: "empty", text: "Кликните по скриншоту, чтобы поставить метку, или зажмите и протяните рамку для области." });
     const status = el("p", { class: "status" });
     const saveBtn = el("button", { class: "primary", text: "Сохранить", onclick: save });
     const cancelBtn = el("button", { class: "ghost", text: "Отмена", onclick: () => requestClose("Нажмите «Отмена» еще раз, чтобы закрыть без сохранения") });
@@ -246,14 +253,12 @@
       el("aside", { class: "panel" }, [
         el("div", { class: "head" }, [
           el("p", { class: "title", text: "Метки на скриншоте" }),
-          el("p", { class: "sub", text: "Точка или область выбирается над списком. Esc закрывает без сохранения." }),
+          el("p", { class: "sub", text: "Клик ставит метку, зажать и протянуть: область. Option (Alt) удерживать: замер отступов. Esc закрывает без сохранения." }),
         ]),
         el("div", { class: "body" }, [
-          el("div", { class: "seg" }, [el("span", { text: "Новая метка:" }), segPin, segArea]),
           empty,
           list,
-          el("label", { class: "label", text: "Общий комментарий" }),
-          note,
+          addBtn,
           el("p", { class: "url", text: location.href }),
         ]),
         el("div", { class: "foot" }, [status, el("div", { class: "row" }, [cancelBtn, saveBtn])]),
@@ -268,8 +273,11 @@
     host.addEventListener("keydown", onKeyDown);
     window.addEventListener("beforeunload", onBeforeUnload);
 
-    ui = { shadow, img, shot, mcanvas, sel, gridBtn, gridOpts, rects, segPin, segArea, cropBtn, applyBtn, acts, resetBtn, copyBtn, list, empty, note, status, saveBtn, cancelBtn, crop: null };
+    ui = { shadow, img, shot, mcanvas, sel, gridBtn, gridOpts, rects, cropBtn, applyBtn, acts, resetBtn, copyBtn, list, empty, status, saveBtn, cancelBtn, crop: null };
     document.documentElement.append(host);
+    window.addEventListener("keydown", onModifier, true);
+    window.addEventListener("keyup", onModifier, true);
+    window.addEventListener("blur", onModifierReset);
     ui.resizeObs = new ResizeObserver(() => paintOverlay());
     ui.resizeObs.observe(img);
     saveBtn.focus();
@@ -279,7 +287,7 @@
   function hasWork() {
     return (
       !!state &&
-      (state.pins.length > 0 || state.measures.length > 0 || ui.note.value.trim().length > 0 || state.dataUrl !== state.originalDataUrl)
+      (state.pins.length > 0 || state.measures.length > 0 || state.dataUrl !== state.originalDataUrl)
     );
   }
 
@@ -309,6 +317,9 @@
 
   function close() {
     window.removeEventListener("beforeunload", onBeforeUnload);
+    window.removeEventListener("keydown", onModifier, true);
+    window.removeEventListener("keyup", onModifier, true);
+    window.removeEventListener("blur", onModifierReset);
     if (ui && ui.resizeObs) ui.resizeObs.disconnect();
     if (host) host.remove();
     host = null;
@@ -379,6 +390,34 @@
     return best;
   }
 
+  // The tool is on when toggled, or while Option/Alt is held.
+  function measuring() {
+    return state.measure || state.altMeasure;
+  }
+
+  function syncMeasureUi() {
+    ui.shot.classList.toggle("measuring", measuring());
+    if (!measuring()) {
+      state.hover = null;
+      state.sel = null;
+    }
+    paintOverlay();
+  }
+
+  function onModifier(e) {
+    if (!state || e.key !== "Alt") return;
+    const down = e.type === "keydown";
+    if (state.altMeasure === down) return;
+    state.altMeasure = down;
+    syncMeasureUi();
+  }
+
+  function onModifierReset() {
+    if (!state || !state.altMeasure) return;
+    state.altMeasure = false;
+    syncMeasureUi();
+  }
+
   function toggleMeasure() {
     if (!state.measure && state.cropping) toggleCrop();
     state.measure = !state.measure;
@@ -386,7 +425,7 @@
     state.hover = null;
     ui.gridBtn.classList.toggle("on", state.measure);
     ui.gridOpts.hidden = !state.measure;
-    ui.shot.classList.toggle("measuring", state.measure);
+    ui.shot.classList.toggle("measuring", measuring());
     setStatus(state.measure ? "Наведите на элемент: отступы до родителя. Клик закрепляет замер" : "");
     paintOverlay();
   }
@@ -398,14 +437,14 @@
   }
 
   function onMeasureMove(e) {
-    if (!state.measure) return;
+    if (!measuring()) return;
     const hit = hitElement(pointCss(e));
     state.hover = hit;
     paintOverlay();
   }
 
   function onMeasureLeave() {
-    if (!state.measure) return;
+    if (!measuring()) return;
     state.hover = null;
     paintOverlay();
   }
@@ -431,7 +470,7 @@
   function currentItems() {
     const items = [...state.measures];
     const hit = state.hover;
-    if (state.measure) {
+    if (measuring()) {
       if (state.sel) items.push({ a: state.sel, b: hit && hit.r !== state.sel ? hit.r : null });
       else if (hit) items.push({ a: hit.r, b: hit.parent >= 0 ? ui.rects[hit.parent].r : null });
     }
@@ -547,14 +586,21 @@
     return out;
   }
 
-  function setMarkType(type) {
-    state.markType = type;
-    ui.segPin.classList.toggle("on", type === "pin");
-    ui.segArea.classList.toggle("on", type === "area");
-    ui.shot.classList.toggle("areamode", type === "area");
-    if (type === "area" && state.cropping) toggleCrop();
-    if (type === "area" && state.measure) toggleMeasure();
-    setStatus(type === "area" ? "Протяните рамку по элементу" : "");
+  // "+": a mark in the middle of the screenshot, focused for typing; it can be
+  // dragged into place. Also leaves the measure/crop tools.
+  function addMark() {
+    if (state.measure) toggleMeasure();
+    if (state.cropping) toggleCrop();
+    if (state.pins.length >= MAX_PINS) {
+      setStatus(`Не больше ${MAX_PINS} меток на одном скриншоте`, "err");
+      return;
+    }
+    // shift a little so several "+" in a row do not stack exactly
+    const n = state.pins.length % 8;
+    state.pins.push({ x: 50 + n * 3, y: 50 + n * 3, comment: "" });
+    state.activeIndex = state.pins.length - 1;
+    setStatus("Перетащите метку на нужное место");
+    focusPin(state.activeIndex);
   }
 
   function toggleCrop() {
@@ -580,13 +626,68 @@
   }
 
   function onCropDown(e) {
-    const mode = state.cropping ? "crop" : state.markType === "area" && !state.measure ? "area" : null;
-    if (!mode || e.button !== 0) return;
+    if (e.button !== 0) return;
+    if (state.cropping) return startCropDrag(e);
+    if (measuring()) return;
+    const onPin = e.target.classList && e.target.classList.contains("pin");
+    const idx = onPin ? Number(e.target.dataset.index) : -1;
+    const movable = onPin && !state.pins[idx].w; // areas stay where they were drawn
+    if (onPin && !movable) return;
+    e.preventDefault();
+    const startPx = { x: e.clientX, y: e.clientY };
+    const start = pointPercent(e);
+    let dragging = false;
+    const move = (ev) => {
+      if (!dragging && Math.hypot(ev.clientX - startPx.x, ev.clientY - startPx.y) < DRAG_PX) return;
+      dragging = true;
+      const p = pointPercent(ev);
+      if (movable) {
+        state.pins[idx].x = p.x;
+        state.pins[idx].y = p.y;
+        const node = ui.shot.querySelector(`.pin[data-index="${idx}"]`);
+        if (node) {
+          node.style.left = p.x + "%";
+          node.style.top = p.y + "%";
+        }
+        return;
+      }
+      ui.crop = { x1: start.x, y1: start.y, x2: p.x, y2: p.y };
+      ui.sel.classList.add("area");
+      drawSel();
+    };
+    const up = () => {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+      if (!dragging) return; // a plain click: onShotClick places or focuses a pin
+      ui.dragEndAt = performance.now(); // swallow the click that follows the drag
+      if (movable) {
+        state.activeIndex = idx;
+        renderPins();
+        return;
+      }
+      const c = cropRect();
+      ui.sel.style.display = "none";
+      ui.sel.classList.remove("area");
+      ui.crop = null;
+      if (!c || c.w < MIN_AREA || c.h < MIN_AREA) return;
+      if (state.pins.length >= MAX_PINS) {
+        setStatus(`Не больше ${MAX_PINS} меток на одном скриншоте`, "err");
+        return;
+      }
+      state.pins.push({ x: c.x, y: c.y, w: c.w, h: c.h, comment: "", inline: false });
+      state.activeIndex = state.pins.length - 1;
+      focusPin(state.activeIndex);
+    };
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
+  }
+
+  function startCropDrag(e) {
     e.preventDefault();
     const start = pointPercent(e);
     ui.crop = { x1: start.x, y1: start.y, x2: start.x, y2: start.y };
     ui.applyBtn.hidden = true;
-    ui.sel.classList.toggle("area", mode === "area");
+    ui.sel.classList.remove("area");
     const move = (ev) => {
       const p = pointPercent(ev);
       ui.crop.x2 = p.x;
@@ -597,21 +698,6 @@
       window.removeEventListener("pointermove", move);
       window.removeEventListener("pointerup", up);
       const c = cropRect();
-      if (mode === "area") {
-        ui.sel.style.display = "none";
-        ui.sel.classList.remove("area");
-        const crop = ui.crop;
-        ui.crop = null;
-        if (!c || c.w < MIN_AREA || c.h < MIN_AREA || !crop) return;
-        if (state.pins.length >= MAX_PINS) {
-          setStatus(`Не больше ${MAX_PINS} меток на одном скриншоте`, "err");
-          return;
-        }
-        state.pins.push({ x: c.x, y: c.y, w: c.w, h: c.h, comment: "", inline: false });
-        state.activeIndex = state.pins.length - 1;
-        focusPin(state.activeIndex);
-        return;
-      }
       const ok = c && c.w >= MIN_CROP && c.h >= MIN_CROP;
       ui.applyBtn.hidden = !ok;
       if (!ok) {
@@ -722,15 +808,16 @@
   }
 
   function onShotClick(e) {
+    if (ui.dragEndAt && performance.now() - ui.dragEndAt < 150) return; // click after a drag
+    if (measuring()) {
+      measureClick(e);
+      return;
+    }
     if (e.target.classList.contains("pin")) {
       focusPin(Number(e.target.dataset.index));
       return;
     }
-    if (state.measure) {
-      measureClick(e);
-      return;
-    }
-    if (state.cropping || state.markType === "area") return;
+    if (state.cropping) return;
     const rect = ui.img.getBoundingClientRect();
     const x = ((e.clientX - rect.left) / rect.width) * 100;
     const y = ((e.clientY - rect.top) / rect.height) * 100;
@@ -814,15 +901,20 @@
         },
       });
       ta.value = pin.comment;
-      const modeBtn = el("button", {
-        class: `mode${pin.inline ? " on" : ""}`,
-        text: pin.inline ? "Рядом с меткой" : "В списке под фото",
-        title: "Где показывать этот комментарий на копии и сохраненной картинке",
-        onclick: () => {
-          pin.inline = !pin.inline;
-          focusPin(i);
+      const modeBtn = el(
+        "button",
+        {
+          class: "sw",
+          role: "switch",
+          "aria-checked": String(!!pin.inline),
+          title: "Включено: комментарий рисуется рядом с меткой. Выключено: списком под фото",
+          onclick: () => {
+            pin.inline = !pin.inline;
+            focusPin(i);
+          },
         },
-      });
+        [el("span", { class: "track" }, [el("span", { class: "knob" })]), el("span", { text: "Рядом с меткой" })]
+      );
       ui.list.append(
         el("li", { class: active ? "active" : "" }, [
           el("span", { class: "num", text: String(i + 1) }),
@@ -954,7 +1046,6 @@
     const lines = state.pins
       .map((p, i) => ({ n: i + 1, text: p.comment.trim(), inline: !!p.inline }))
       .filter((l) => l.text && !l.inline);
-    const noteText = ui.note.value.trim();
 
     const w = base.width;
     const fs = Math.max(16, Math.round(w / 70));
@@ -984,12 +1075,11 @@
       urlText = urlText.slice(0, -2) + "…";
     }
     const blocks = lines.map((l) => ({ n: l.n, rows: wrap(l.text) }));
-    const noteRows = noteText ? wrap(noteText) : [];
     const headRows = titleRows.length + 1;
     const rowsTotal =
       headRows + 0.5 +
-      blocks.reduce((sum, b) => sum + b.rows.length, 0) + noteRows.length + (noteRows.length && blocks.length ? 1 : 0);
-    const footH = pad * 2 + rowsTotal * lineH + (blocks.length + (noteRows.length ? 1 : 0)) * fs * 0.4;
+      blocks.reduce((sum, b) => sum + b.rows.length, 0);
+    const footH = pad * 2 + rowsTotal * lineH + blocks.length * fs * 0.4;
 
     const out = document.createElement("canvas");
     out.width = w;
@@ -1027,13 +1117,6 @@
       ctx.textBaseline = "top";
       b.rows.forEach((row, i) => ctx.fillText(row, pad + fs * 2.2, y + i * lineH + (lineH - fs) / 2));
       y += b.rows.length * lineH + fs * 0.4;
-    }
-    if (noteRows.length) {
-      if (blocks.length) y += lineH;
-      ctx.fillStyle = "#6b6f85";
-      ctx.font = `italic ${fs}px system-ui, sans-serif`;
-      ctx.textAlign = "left";
-      noteRows.forEach((row, i) => ctx.fillText(row, pad, y + i * lineH + (lineH - fs) / 2));
     }
     return out;
   }
@@ -1113,7 +1196,6 @@
             ...(p.w ? { w: p.w, h: p.h } : {}),
             ...(p.inline ? { inline: true } : {}),
           })),
-          note: ui.note.value.trim(),
           pageUrl: location.href.slice(0, MAX_URL),
           pageTitle: document.title,
           viewportWidth: window.innerWidth,
