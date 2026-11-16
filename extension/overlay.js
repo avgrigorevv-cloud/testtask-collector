@@ -65,21 +65,20 @@
     .round.ok:hover { background: #15803d; }
     .round.no { background: #fff; color: #dc2626; }
     .round.no:hover { background: #fef2f2; }
-    .grid { position: absolute; inset: 0; pointer-events: none; display: none; }
-    .grid.on { display: block; }
-    .gcol { position: absolute; top: 0; bottom: 0; background: rgba(239,68,68,.14); box-shadow: inset 1px 0 rgba(239,68,68,.45), inset -1px 0 rgba(239,68,68,.45); }
+    .mcanvas { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+    .shot.measuring { cursor: crosshair; }
     .gridopts {
       display: flex; flex-wrap: wrap; gap: 6px; align-items: center; padding: 6px 10px;
       border-radius: 999px; background: rgba(255,255,255,.95); box-shadow: 0 4px 16px rgba(0,0,0,.3);
       font: 500 12px system-ui, sans-serif; color: #6b6f85;
     }
     .gridopts[hidden] { display: none; }
-    .gridopts select, .gridopts input {
-      height: 26px; padding: 0 6px; border: 1px solid #d4d4e0; border-radius: 8px;
-      font: 500 12px system-ui, sans-serif; color: #0d0f1e; background: #fff;
+    .gridopts button {
+      padding: 3px 10px; border: 1px solid #d4d4e0; border-radius: 999px; background: #fff;
+      font: 500 12px system-ui, sans-serif; color: #6b6f85; cursor: pointer;
     }
-    .gridopts input { width: 54px; }
-    .gridopts [hidden] { display: none; }
+    .gridopts button:hover { color: #dc2626; }
+    .seg { display: flex; align-items: center; gap: 6px; margin: 0 0 12px; font-size: 12px; color: #6b6f85; }
     .shot.areamode { cursor: cell; }
     .sel.area { border: 2px solid #ef4444; background: rgba(239,68,68,.12); box-shadow: none; }
     .areabox {
@@ -170,11 +169,14 @@
     '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
   const MIN_CROP = 3; // percent; smaller selections are ignored
   const MIN_AREA = 1.5; // percent
-  const GRID_COLOR = "rgba(239,68,68,.4)";
+  const MEASURE_COLOR = "#d946ef";
+  const MEASURE_PILL = "#7c3aed";
+  const MAX_ELEMENTS = 6000;
 
   // state: { dataUrl, originalDataUrl, pins: [{x, y, comment, w?, h?, inline?}], activeIndex, cropping,
-  //          areaMode, grid, gridMode: "squares"|"columns", gridStep, gridCols, gridMargin, gridGutter,
-  //          cssWidth (CSS px the full image width stands for), originalCssWidth }
+  //          markType: "pin"|"area" (what a new mark is), measure (tool on), measures: [{a, b}],
+  //          sel (first element of a pair measure), view: { x0, y0 } (CSS px at the image's top-left),
+  //          cssWidth (CSS px the image width stands for), originalCssWidth }
   let state = null;
   let host = null;
   let ui = null;
@@ -196,33 +198,27 @@
   }
 
   function open(dataUrl) {
-    state = { dataUrl, originalDataUrl: dataUrl, pins: [], activeIndex: -1, closeArmed: false, cropping: false, areaMode: false,
-      grid: false, gridMode: "squares", gridStep: 8, gridCols: 12, gridMargin: 24, gridGutter: 16,
-      cssWidth: window.innerWidth, originalCssWidth: window.innerWidth,
+    state = { dataUrl, originalDataUrl: dataUrl, pins: [], activeIndex: -1, closeArmed: false, cropping: false,
+      markType: "pin", measure: false, measures: [], sel: null, hover: null,
+      view: { x0: 0, y0: 0 }, cssWidth: window.innerWidth, originalCssWidth: window.innerWidth,
     };
+    // Geometry of the page's elements at the moment of capture (CSS px, viewport
+    // coordinates): the measure tool needs it, a screenshot alone has no DOM.
+    const rects = collectRects();
     host = document.createElement("tt-capture-overlay");
     const shadow = host.attachShadow({ mode: "closed" });
     shadow.append(el("style", { text: STYLE }));
 
     const img = el("img", { src: dataUrl, alt: "Скриншот", draggable: "false" });
-    const grid = el("div", { class: "grid" });
+    const mcanvas = el("canvas", { class: "mcanvas" });
     const sel = el("div", { class: "sel" });
-    const shot = el("div", { class: "shot", onclick: onShotClick, onpointerdown: onCropDown }, [img, grid, sel]);
-    const gridBtn = el("button", { class: "tool", text: "Сетка", title: "Дизайн-сетка в пикселях страницы: квадраты или колонки", onclick: toggleGrid });
-    const areaBtn = el("button", { class: "tool", text: "Область", title: "Протяните рамку по элементу: область с номером и комментарием", onclick: toggleArea });
-    const modeSel = el("select", { "aria-label": "Тип сетки", onchange: onGridOpt }, [
-      el("option", { value: "squares", text: "Квадраты" }),
-      el("option", { value: "columns", text: "Колонки" }),
+    const shot = el("div", { class: "shot", onclick: onShotClick, onpointerdown: onCropDown, onpointermove: onMeasureMove, onpointerleave: onMeasureLeave }, [img, mcanvas, sel]);
+    const gridBtn = el("button", { class: "tool", text: "Сетка", title: "Замер отступов: наведите на элемент страницы, клик закрепляет замер, Shift+клик измеряет до другого элемента", onclick: toggleMeasure });
+    const clearBtn = el("button", { text: "Очистить замеры", onclick: clearMeasures });
+    const gridOpts = el("div", { class: "gridopts", hidden: "" }, [
+      el("span", { text: "Клик: отступы до родителя · Shift+клик: до другого элемента · Esc: отмена" }),
+      clearBtn,
     ]);
-    const stepSel = el("select", { "aria-label": "Шаг сетки", onchange: onGridOpt }, [4, 8, 10, 16, 24, 32].map((n) => el("option", { value: String(n), text: `${n} px` })));
-    stepSel.value = "8";
-    const colsSel = el("select", { "aria-label": "Число колонок", onchange: onGridOpt, hidden: "" }, [4, 6, 8, 12].map((n) => el("option", { value: String(n), text: `${n} колонок` })));
-    colsSel.value = "12";
-    const marginIn = el("input", { type: "number", min: "0", max: "400", value: "24", title: "Поля, px", "aria-label": "Поля, px", oninput: onGridOpt, hidden: "" });
-    const gutterIn = el("input", { type: "number", min: "0", max: "200", value: "16", title: "Зазор между колонками, px", "aria-label": "Зазор, px", oninput: onGridOpt, hidden: "" });
-    const marginLbl = el("span", { text: "поля", hidden: "" });
-    const gutterLbl = el("span", { text: "зазор", hidden: "" });
-    const gridOpts = el("div", { class: "gridopts", hidden: "" }, [modeSel, stepSel, colsSel, marginLbl, marginIn, gutterLbl, gutterIn]);
     const cropBtn = el("button", { class: "tool", text: "Обрезать", title: "Выделите область, которую нужно оставить", onclick: toggleCrop });
     const applyBtn = el("button", { class: "round ok", text: "✓", title: "Применить обрезку", "aria-label": "Применить обрезку", hidden: "", onclick: applyCrop });
     const cancelCropBtn = el("button", { class: "round no", text: "✕", title: "Отменить обрезку", "aria-label": "Отменить обрезку", onclick: toggleCrop });
@@ -230,9 +226,11 @@
     const resetBtn = el("button", { class: "tool", text: "Вернуть исходный", hidden: "", onclick: resetCrop });
     const copyBtn = el("button", { class: "tool icon", "data-tip": "Копировать фото + текст", "aria-label": "Копировать скриншот с комментариями в буфер обмена", onclick: copyToClipboard });
     copyBtn.innerHTML = COPY_ICON; // static markup, no page data
-    const tools = el("div", { class: "tools" }, [gridBtn, areaBtn, cropBtn, resetBtn, copyBtn]);
+    const tools = el("div", { class: "tools" }, [gridBtn, cropBtn, resetBtn, copyBtn]);
+    const segPin = el("button", { class: "mode on", text: "Точка", title: "Клик по скриншоту ставит точку", onclick: () => setMarkType("pin") });
+    const segArea = el("button", { class: "mode", text: "Область", title: "Протяните рамку по элементу", onclick: () => setMarkType("area") });
     const list = el("ul");
-    const empty = el("p", { class: "empty", text: "Кликните по скриншоту, чтобы поставить метку." });
+    const empty = el("p", { class: "empty", text: "Кликните по скриншоту (или протяните рамку для области), чтобы поставить метку." });
     const note = el("textarea", {
       placeholder: "Общий комментарий к скриншоту (необязательно)",
       rows: "3",
@@ -248,9 +246,10 @@
       el("aside", { class: "panel" }, [
         el("div", { class: "head" }, [
           el("p", { class: "title", text: "Метки на скриншоте" }),
-          el("p", { class: "sub", text: "Клик ставит метку, «Область» рисует рамку. Esc закрывает без сохранения." }),
+          el("p", { class: "sub", text: "Точка или область выбирается над списком. Esc закрывает без сохранения." }),
         ]),
         el("div", { class: "body" }, [
+          el("div", { class: "seg" }, [el("span", { text: "Новая метка:" }), segPin, segArea]),
           empty,
           list,
           el("label", { class: "label", text: "Общий комментарий" }),
@@ -269,9 +268,9 @@
     host.addEventListener("keydown", onKeyDown);
     window.addEventListener("beforeunload", onBeforeUnload);
 
-    ui = { shadow, img, shot, grid, sel, gridBtn, areaBtn, gridOpts, modeSel, stepSel, colsSel, marginIn, gutterIn, marginLbl, gutterLbl, cropBtn, applyBtn, acts, resetBtn, copyBtn, list, empty, note, status, saveBtn, cancelBtn, crop: null };
+    ui = { shadow, img, shot, mcanvas, sel, gridBtn, gridOpts, rects, segPin, segArea, cropBtn, applyBtn, acts, resetBtn, copyBtn, list, empty, note, status, saveBtn, cancelBtn, crop: null };
     document.documentElement.append(host);
-    ui.resizeObs = new ResizeObserver(() => renderGrid());
+    ui.resizeObs = new ResizeObserver(() => paintOverlay());
     ui.resizeObs.observe(img);
     saveBtn.focus();
     renderPins();
@@ -280,7 +279,7 @@
   function hasWork() {
     return (
       !!state &&
-      (state.pins.length > 0 || ui.note.value.trim().length > 0 || state.dataUrl !== state.originalDataUrl)
+      (state.pins.length > 0 || state.measures.length > 0 || ui.note.value.trim().length > 0 || state.dataUrl !== state.originalDataUrl)
     );
   }
 
@@ -320,95 +319,246 @@
   function onKeyDown(e) {
     if (e.key !== "Escape" || !state) return;
     e.preventDefault();
+    if (state.sel) {
+      state.sel = null;
+      setStatus("");
+      paintOverlay();
+      return;
+    }
     requestClose("Нажмите Esc еще раз, чтобы закрыть без сохранения");
   }
 
-  function toggleGrid() {
-    state.grid = !state.grid;
-    ui.gridBtn.classList.toggle("on", state.grid);
-    ui.gridOpts.hidden = !state.grid;
-    renderGrid();
-  }
+  // ---- element geometry + measure tool ------------------------------------
 
-  function onGridOpt() {
-    state.gridMode = ui.modeSel.value;
-    state.gridStep = Number(ui.stepSel.value) || 8;
-    state.gridCols = Number(ui.colsSel.value) || 12;
-    state.gridMargin = Math.max(0, Number(ui.marginIn.value) || 0);
-    state.gridGutter = Math.max(0, Number(ui.gutterIn.value) || 0);
-    renderGrid();
-  }
-
-  // Column geometry in CSS px of the page: [{ left, width }]
-  function gridColumns() {
-    const total = state.cssWidth;
-    const n = state.gridCols;
-    const m = Math.min(state.gridMargin, total / 3);
-    const g = state.gridGutter;
-    const cw = (total - 2 * m - (n - 1) * g) / n;
-    if (cw <= 0) return [];
-    return Array.from({ length: n }, (_, i) => ({ left: m + i * (cw + g), width: cw }));
-  }
-
-  function renderGrid() {
-    if (!ui) return;
-    const cols = state.gridMode === "columns";
-    ui.stepSel.hidden = cols;
-    ui.colsSel.hidden = !cols;
-    for (const n of [ui.marginIn, ui.gutterIn, ui.marginLbl, ui.gutterLbl]) n.hidden = !cols;
-    ui.grid.classList.toggle("on", state.grid);
-    ui.grid.replaceChildren();
-    ui.grid.style.backgroundImage = "";
-    if (!state.grid) return;
-    const pxPerCss = ui.img.clientWidth / Math.max(1, state.cssWidth);
-    if (cols) {
-      for (const c of gridColumns()) {
-        ui.grid.append(
-          el("div", { class: "gcol", style: `left:${(c.left / state.cssWidth) * 100}%;width:${(c.width / state.cssWidth) * 100}%` })
-        );
+  function collectRects() {
+    const out = [];
+    const index = new Map();
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    const SKIP = new Set(["SCRIPT", "STYLE", "LINK", "META", "HEAD", "TITLE", "NOSCRIPT", "BR", "TT-CAPTURE-OVERLAY"]);
+    const same = (a, b) => Math.abs(a[0] - b[0]) < 0.5 && Math.abs(a[1] - b[1]) < 0.5 && Math.abs(a[2] - b[2]) < 0.5 && Math.abs(a[3] - b[3]) < 0.5;
+    const all = [document.documentElement, ...document.querySelectorAll("body, body *")];
+    for (const node of all) {
+      if (out.length >= MAX_ELEMENTS) break;
+      if (SKIP.has(node.tagName)) continue;
+      const b = node.getBoundingClientRect();
+      if (b.width < 1 || b.height < 1 || b.right <= 0 || b.bottom <= 0 || b.left >= vw || b.top >= vh) continue;
+      if (node.checkVisibility && !node.checkVisibility()) continue;
+      const r = [b.left, b.top, b.right, b.bottom];
+      // parent = nearest collected ancestor whose box really differs (skip same-size wrappers)
+      let parent = -1;
+      for (let a = node.parentElement; a; a = a.parentElement) {
+        const i = index.get(a);
+        if (i === undefined) continue;
+        if (!same(out[i].r, r)) {
+          parent = i;
+          break;
+        }
       }
-      return;
+      index.set(node, out.length);
+      out.push({ r, parent, area: b.width * b.height });
     }
-    const step = state.gridStep * pxPerCss;
-    if (step < 3) return; // too dense to be useful at this zoom
-    ui.grid.style.backgroundImage = `linear-gradient(to right, ${GRID_COLOR} 1px, transparent 1px), linear-gradient(to bottom, ${GRID_COLOR} 1px, transparent 1px)`;
-    ui.grid.style.backgroundSize = `${step}px ${step}px`;
+    return out;
   }
 
-  // Same grid drawn into the exported image.
-  function drawGrid(ctx, W, H) {
-    if (!state.grid) return;
-    const k = W / Math.max(1, state.cssWidth); // image px per CSS px
-    ctx.save();
-    if (state.gridMode === "columns") {
-      for (const c of gridColumns()) {
-        ctx.fillStyle = "rgba(239,68,68,.14)";
-        ctx.fillRect(c.left * k, 0, c.width * k, H);
-        ctx.fillStyle = "rgba(239,68,68,.45)";
-        ctx.fillRect(c.left * k, 0, 1, H);
-        ctx.fillRect((c.left + c.width) * k - 1, 0, 1, H);
-      }
+  // pointer -> CSS px of the page
+  function pointCss(e) {
+    const box = ui.img.getBoundingClientRect();
+    const k = state.cssWidth / Math.max(1, box.width);
+    return { x: state.view.x0 + (e.clientX - box.left) * k, y: state.view.y0 + (e.clientY - box.top) * k };
+  }
+
+  // smallest element box containing the point
+  function hitElement(pt) {
+    let best = null;
+    for (const item of ui.rects) {
+      const [l, t, r, b] = item.r;
+      if (pt.x < l || pt.x > r || pt.y < t || pt.y > b) continue;
+      if (!best || item.area <= best.area) best = item;
+    }
+    return best;
+  }
+
+  function toggleMeasure() {
+    if (!state.measure && state.cropping) toggleCrop();
+    state.measure = !state.measure;
+    state.sel = null;
+    state.hover = null;
+    ui.gridBtn.classList.toggle("on", state.measure);
+    ui.gridOpts.hidden = !state.measure;
+    ui.shot.classList.toggle("measuring", state.measure);
+    setStatus(state.measure ? "Наведите на элемент: отступы до родителя. Клик закрепляет замер" : "");
+    paintOverlay();
+  }
+
+  function clearMeasures() {
+    state.measures = [];
+    state.sel = null;
+    paintOverlay();
+  }
+
+  function onMeasureMove(e) {
+    if (!state.measure) return;
+    const hit = hitElement(pointCss(e));
+    state.hover = hit;
+    paintOverlay();
+  }
+
+  function onMeasureLeave() {
+    if (!state.measure) return;
+    state.hover = null;
+    paintOverlay();
+  }
+
+  function measureClick(e) {
+    const hit = state.hover || hitElement(pointCss(e));
+    if (!hit) return;
+    if (state.sel) {
+      if (hit.r !== state.sel) state.measures.push({ a: state.sel, b: hit.r });
+      state.sel = null;
+      setStatus("");
+    } else if (e.shiftKey) {
+      state.sel = hit.r;
+      setStatus("Теперь наведите на второй элемент и кликните");
     } else {
-      const step = state.gridStep * k;
-      if (step >= 3) {
-        ctx.fillStyle = GRID_COLOR;
-        for (let x = 0; x < W; x += step) ctx.fillRect(Math.round(x), 0, 1, H);
-        for (let y = 0; y < H; y += step) ctx.fillRect(0, Math.round(y), W, 1);
+      const parent = hit.parent >= 0 ? ui.rects[hit.parent].r : null;
+      state.measures.push({ a: hit.r, b: parent });
+    }
+    paintOverlay();
+  }
+
+  // What is drawn right now: pinned measures + the live preview.
+  function currentItems() {
+    const items = [...state.measures];
+    const hit = state.hover;
+    if (state.measure) {
+      if (state.sel) items.push({ a: state.sel, b: hit && hit.r !== state.sel ? hit.r : null });
+      else if (hit) items.push({ a: hit.r, b: hit.parent >= 0 ? ui.rects[hit.parent].r : null });
+    }
+    return items;
+  }
+
+  function paintOverlay() {
+    if (!ui || !ui.mcanvas) return;
+    const c = ui.mcanvas;
+    const w = ui.img.clientWidth;
+    const h = ui.img.clientHeight;
+    const dpr = window.devicePixelRatio || 1;
+    c.width = Math.max(1, Math.round(w * dpr));
+    c.height = Math.max(1, Math.round(h * dpr));
+    const ctx = c.getContext("2d");
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, w, h);
+    paintMeasures(ctx, w, h, 1, currentItems());
+  }
+
+  function pill(ctx, x, y, text, ks) {
+    ctx.save();
+    ctx.font = `600 ${11 * ks}px system-ui, sans-serif`;
+    const w = ctx.measureText(text).width + 10 * ks;
+    const h = 16 * ks;
+    ctx.beginPath();
+    ctx.roundRect(x - w / 2, y - h / 2, w, h, h / 2);
+    ctx.fillStyle = MEASURE_PILL;
+    ctx.fill();
+    ctx.fillStyle = "#fff";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(text, x, y + 0.5 * ks);
+    ctx.restore();
+  }
+
+  // Draws guides, outlines and distance pills. W x H is the target canvas,
+  // ks scales line widths / fonts (1 on screen, image px per screen px on export).
+  function paintMeasures(ctx, W, H, ks, items) {
+    if (!items.length) return;
+    const k = W / Math.max(1, state.cssWidth);
+    const X = (cx) => (cx - state.view.x0) * k;
+    const Y = (cy) => (cy - state.view.y0) * k;
+    ctx.save();
+    ctx.lineWidth = ks;
+    for (const { a, b } of items) {
+      const A = [X(a[0]), Y(a[1]), X(a[2]), Y(a[3])];
+      const B = b ? [X(b[0]), Y(b[1]), X(b[2]), Y(b[3])] : null;
+      // dotted guides through the edges of the measured element
+      ctx.strokeStyle = MEASURE_COLOR;
+      ctx.setLineDash([2 * ks, 3 * ks]);
+      ctx.beginPath();
+      for (const x of [A[0], A[2]]) { ctx.moveTo(x, 0); ctx.lineTo(x, H); }
+      for (const y of [A[1], A[3]]) { ctx.moveTo(0, y); ctx.lineTo(W, y); }
+      ctx.stroke();
+      ctx.setLineDash([]);
+      if (B) ctx.strokeRect(B[0], B[1], B[2] - B[0], B[3] - B[1]);
+      ctx.strokeRect(A[0], A[1], A[2] - A[0], A[3] - A[1]);
+      // handles
+      ctx.fillStyle = "#fff";
+      for (const [hx, hy] of [[A[0], A[1]], [A[2], A[1]], [A[0], A[3]], [A[2], A[3]], [(A[0] + A[2]) / 2, A[1]], [(A[0] + A[2]) / 2, A[3]], [A[0], (A[1] + A[3]) / 2], [A[2], (A[1] + A[3]) / 2]]) {
+        ctx.beginPath();
+        ctx.arc(hx, hy, 2.5 * ks, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+      }
+      if (!B) continue;
+      const lines = measureLines(a, b);
+      for (const ln of lines) {
+        const x1 = X(ln.x1), y1 = Y(ln.y1), x2 = X(ln.x2), y2 = Y(ln.y2);
+        ctx.strokeStyle = MEASURE_COLOR;
+        ctx.beginPath();
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.stroke();
+        pill(ctx, (x1 + x2) / 2, (y1 + y2) / 2, String(Math.round(ln.value)), ks);
       }
     }
     ctx.restore();
   }
 
-  function toggleArea() {
-    if (!state.areaMode && state.cropping) toggleCrop();
-    state.areaMode = !state.areaMode;
-    ui.areaBtn.classList.toggle("on", state.areaMode);
-    ui.shot.classList.toggle("areamode", state.areaMode);
-    setStatus(state.areaMode ? "Протяните рамку по элементу. Режим выключается повторным нажатием «Область»" : "");
+  // Distances (CSS px) between box a and box b, as line segments.
+  function measureLines(a, b) {
+    const within = (i, o) => i[0] >= o[0] - 0.5 && i[1] >= o[1] - 0.5 && i[2] <= o[2] + 0.5 && i[3] <= o[3] + 0.5;
+    const out = [];
+    const add = (x1, y1, x2, y2, value) => {
+      if (value >= 0.5) out.push({ x1, y1, x2, y2, value });
+    };
+    const inner = (i, o) => {
+      const cx = (i[0] + i[2]) / 2;
+      const cy = (i[1] + i[3]) / 2;
+      add(cx, o[1], cx, i[1], i[1] - o[1]);
+      add(cx, i[3], cx, o[3], o[3] - i[3]);
+      add(o[0], cy, i[0], cy, i[0] - o[0]);
+      add(i[2], cy, o[2], cy, o[2] - i[2]);
+    };
+    if (within(a, b)) {
+      inner(a, b);
+    } else if (within(b, a)) {
+      inner(b, a);
+    } else {
+      const oy1 = Math.max(a[1], b[1]);
+      const oy2 = Math.min(a[3], b[3]);
+      const y = oy2 > oy1 ? (oy1 + oy2) / 2 : (a[1] + a[3]) / 2;
+      if (a[2] <= b[0]) add(a[2], y, b[0], y, b[0] - a[2]);
+      else if (b[2] <= a[0]) add(b[2], y, a[0], y, a[0] - b[2]);
+      const ox1 = Math.max(a[0], b[0]);
+      const ox2 = Math.min(a[2], b[2]);
+      const x = ox2 > ox1 ? (ox1 + ox2) / 2 : (a[0] + a[2]) / 2;
+      if (a[3] <= b[1]) add(x, a[3], x, b[1], b[1] - a[3]);
+      else if (b[3] <= a[1]) add(x, b[3], x, a[1], a[1] - b[3]);
+    }
+    return out;
+  }
+
+  function setMarkType(type) {
+    state.markType = type;
+    ui.segPin.classList.toggle("on", type === "pin");
+    ui.segArea.classList.toggle("on", type === "area");
+    ui.shot.classList.toggle("areamode", type === "area");
+    if (type === "area" && state.cropping) toggleCrop();
+    if (type === "area" && state.measure) toggleMeasure();
+    setStatus(type === "area" ? "Протяните рамку по элементу" : "");
   }
 
   function toggleCrop() {
-    if (!state.cropping && state.areaMode) toggleArea();
+    if (!state.cropping && state.measure) toggleMeasure();
     state.cropping = !state.cropping;
     ui.crop = null;
     ui.sel.style.display = "none";
@@ -430,7 +580,7 @@
   }
 
   function onCropDown(e) {
-    const mode = state.cropping ? "crop" : state.areaMode ? "area" : null;
+    const mode = state.cropping ? "crop" : state.markType === "area" && !state.measure ? "area" : null;
     if (!mode || e.button !== 0) return;
     e.preventDefault();
     const start = pointPercent(e);
@@ -540,13 +690,16 @@
       }
     }
     state.pins = next;
+    const cssH = state.cssWidth * (image.naturalHeight / image.naturalWidth);
+    state.view = { x0: state.view.x0 + (c.x / 100) * state.cssWidth, y0: state.view.y0 + (c.y / 100) * cssH };
     state.cssWidth = state.cssWidth * (c.w / 100);
+    state.hover = null;
     const dropped = before - state.pins.length;
     state.activeIndex = -1;
 
     await setImage(canvas.toDataURL("image/png"));
     toggleCrop();
-    renderGrid();
+    paintOverlay();
     ui.resetBtn.hidden = false;
     renderPins();
     setStatus(dropped ? `Обрезано. Удалено меток вне области: ${dropped}` : "Обрезано", "ok");
@@ -558,8 +711,10 @@
     state.pins = [];
     state.activeIndex = -1;
     state.cssWidth = state.originalCssWidth;
+    state.view = { x0: 0, y0: 0 };
+    state.hover = null;
     await setImage(state.originalDataUrl);
-    renderGrid();
+    paintOverlay();
     if (state.cropping) toggleCrop();
     ui.resetBtn.hidden = true;
     renderPins();
@@ -571,7 +726,11 @@
       focusPin(Number(e.target.dataset.index));
       return;
     }
-    if (state.cropping || state.areaMode) return;
+    if (state.measure) {
+      measureClick(e);
+      return;
+    }
+    if (state.cropping || state.markType === "area") return;
     const rect = ui.img.getBoundingClientRect();
     const x = ((e.clientX - rect.left) / rect.width) * 100;
     const y = ((e.clientY - rect.top) / rect.height) * 100;
@@ -704,7 +863,7 @@
     return out;
   }
 
-  // Same screenshot with the grid (if on), areas, numbered pins and the
+  // Same screenshot with the pinned measures, areas, numbered pins and the
   // "next to the pin" comments drawn on it, so a downloaded PNG is readable
   // without the admin UI.
   async function drawBase(withPins) {
@@ -717,8 +876,8 @@
     const ctx = canvas.getContext("2d");
     ctx.drawImage(image, 0, 0);
     if (!withPins) return canvas;
-    drawGrid(ctx, canvas.width, canvas.height);
     const scale = image.naturalWidth / Math.max(1, ui.img.clientWidth);
+    paintMeasures(ctx, canvas.width, canvas.height, scale, state.measures);
     const r = 12 * scale;
     // areas first, so pins and comments stay on top
     for (const pin of state.pins) {
@@ -783,7 +942,7 @@
   }
 
   async function renderAnnotated() {
-    if (!state.pins.length && !state.grid) return null;
+    if (!state.pins.length && !state.measures.length) return null;
     const canvas = await drawBase(true);
     return fitSize(canvas.toDataURL("image/png"));
   }
